@@ -43,3 +43,4 @@ seed/node_modules/
 
 # Firebase API keys (use firebase_options_local.dart locally)
 lib/firebase_options_local.dart
+android/app/google-services.json

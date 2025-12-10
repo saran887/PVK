@@ -90,21 +90,14 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
       
       // Read file as bytes
       final bytes = await _imageFile!.readAsBytes();
-      
-      // Get file extension
       final extension = _imageFile!.path.split('.').last.toLowerCase();
       final fileName = 'product_${DateTime.now().millisecondsSinceEpoch}.$extension';
       
-      // Upload to postimg.cc (free, no API key needed)
+      // Use 0x0.st - free, reliable, no API key needed
       final request = http.MultipartRequest(
         'POST',
-        Uri.parse('https://postimg.cc/json'),
+        Uri.parse('https://0x0.st'),
       );
-      
-      request.fields['upload_session'] = DateTime.now().millisecondsSinceEpoch.toString();
-      request.fields['numfiles'] = '1';
-      request.fields['gallery'] = '';
-      request.fields['ui'] = 'json';
       
       request.files.add(
         http.MultipartFile.fromBytes(
@@ -129,13 +122,11 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
       debugPrint('📡 Response body: ${response.body}');
       
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
+        // 0x0.st returns the direct URL in the response body
+        final imageUrl = response.body.trim();
         
-        // PostImg returns the direct image URL
-        final imageUrl = data['url'] ?? '';
-        
-        if (imageUrl.isEmpty) {
-          throw Exception('No image URL in response');
+        if (imageUrl.isEmpty || !imageUrl.startsWith('http')) {
+          throw Exception('Invalid image URL in response');
         }
         
         debugPrint('✅ Image uploaded: $imageUrl');

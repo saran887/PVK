@@ -58,7 +58,7 @@ class ManageProductsScreen extends ConsumerWidget {
                   crossAxisCount: 2,
                   childAspectRatio: 0.75,
                   crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
+                  mainAxisSpacing: 14,
                 ),
                 itemCount: products.length,
                 itemBuilder: (context, index) {
@@ -111,10 +111,6 @@ class ManageProductsScreen extends ConsumerWidget {
                             )
                           : const Center(
                               child: Icon(Icons.image, size: 50, color: Colors.grey),
-                            ),
-                    ),
-                              color: Colors.grey[300],
-                              child: const Icon(Icons.image, size: 50, color: Colors.grey),
                             ),
                     ),
                     Padding(

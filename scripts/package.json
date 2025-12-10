@@ -1,0 +1,11 @@
+{
+  "name": "pkv2-scripts",
+  "version": "1.0.0",
+  "description": "Firebase admin scripts for PKV2",
+  "scripts": {
+    "cleanup": "node cleanup_database.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.0.0"
+  }
+}

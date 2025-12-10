@@ -8,7 +8,7 @@ class AdminDashboardScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final user = ref.watch(currentUserProvider).value;
+    final user = ref.watch(currentUserProvider).asData?.value;
 
     return PopScope(
       canPop: false,
@@ -62,7 +62,7 @@ class AdminDashboardScreen extends ConsumerWidget {
                       children: [
                         CircleAvatar(
                           radius: 30,
-                          backgroundColor: Theme.of(context).primaryColor.withOpacity(0.1),
+                          backgroundColor: Color.alphaBlend(Theme.of(context).primaryColor.withAlpha((0.1 * 255).toInt()), Colors.white),
                           child: Text(
                             user?.name.substring(0, 1).toUpperCase() ?? 'A',
                             style: TextStyle(
@@ -102,7 +102,7 @@ class AdminDashboardScreen extends ConsumerWidget {
                   crossAxisCount: 2,
                   mainAxisSpacing: 16,
                   crossAxisSpacing: 16,
-                  childAspectRatio: 1.2,
+                  childAspectRatio: 1,
                   children: [
                     _QuickActionCard(
                       icon: Icons.person_add,
@@ -161,7 +161,7 @@ class AdminDashboardScreen extends ConsumerWidget {
                   crossAxisCount: 2,
                   mainAxisSpacing: 16,
                   crossAxisSpacing: 16,
-                  childAspectRatio: 1.2,
+                  childAspectRatio: 1.35,
                   children: [
                     _QuickActionCard(
                       icon: Icons.analytics,
@@ -219,12 +219,12 @@ class _QuickActionCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(12),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 48, color: color),
-              const SizedBox(height: 12),
+              Icon(icon, size: 40, color: color),
+              const SizedBox(height: 8),
               Text(
                 title,
                 textAlign: TextAlign.center,

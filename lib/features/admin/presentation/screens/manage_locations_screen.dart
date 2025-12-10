@@ -54,7 +54,7 @@ class ManageLocationsScreen extends ConsumerWidget {
           }
 
           return ListView.builder(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 80),
             itemCount: locations.length,
             itemBuilder: (context, index) {
               final location = locations[index].data() as Map<String, dynamic>;
@@ -68,7 +68,7 @@ class ManageLocationsScreen extends ConsumerWidget {
                 margin: const EdgeInsets.only(bottom: 12),
                 child: ListTile(
                   leading: CircleAvatar(
-                    backgroundColor: isActive ? Colors.blue.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
+                    backgroundColor: isActive ? Color.alphaBlend(Colors.blue.withAlpha((0.1 * 255).toInt()), Colors.white) : Color.alphaBlend(Colors.grey.withAlpha((0.1 * 255).toInt()), Colors.white),
                     child: Icon(
                       Icons.location_city,
                       color: isActive ? Colors.blue : Colors.grey,
@@ -83,7 +83,7 @@ class ManageLocationsScreen extends ConsumerWidget {
                       const SizedBox(height: 4),
                       Chip(
                         label: Text(isActive ? 'Active' : 'Inactive', style: const TextStyle(fontSize: 12)),
-                        backgroundColor: isActive ? Colors.green.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
+                        backgroundColor: isActive ? Color.alphaBlend(Colors.green.withAlpha((0.1 * 255).toInt()), Colors.white) : Color.alphaBlend(Colors.grey.withAlpha((0.1 * 255).toInt()), Colors.white),
                         labelStyle: TextStyle(
                           color: isActive ? Colors.green : Colors.grey,
                           fontWeight: FontWeight.bold,

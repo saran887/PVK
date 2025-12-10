@@ -65,7 +65,7 @@ class ManageShopsScreen extends ConsumerWidget {
                 margin: const EdgeInsets.only(bottom: 12),
                 child: ListTile(
                   leading: CircleAvatar(
-                    backgroundColor: isActive ? Colors.green.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
+                    backgroundColor: isActive ? Color.alphaBlend(Colors.green.withAlpha((0.1 * 255).toInt()), Colors.white) : Color.alphaBlend(Colors.grey.withAlpha((0.1 * 255).toInt()), Colors.white),
                     child: Icon(
                       Icons.store,
                       color: isActive ? Colors.green : Colors.grey,
@@ -98,7 +98,7 @@ class ManageShopsScreen extends ConsumerWidget {
                       const SizedBox(height: 4),
                       Chip(
                         label: Text(isActive ? 'Active' : 'Inactive', style: const TextStyle(fontSize: 12)),
-                        backgroundColor: isActive ? Colors.green.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
+                        backgroundColor: isActive ? Color.alphaBlend(Colors.green.withAlpha((0.1 * 255).toInt()), Colors.white) : Color.alphaBlend(Colors.grey.withAlpha((0.1 * 255).toInt()), Colors.white),
                         labelStyle: TextStyle(
                           color: isActive ? Colors.green : Colors.grey,
                           fontWeight: FontWeight.bold,

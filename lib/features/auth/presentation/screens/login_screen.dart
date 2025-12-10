@@ -77,7 +77,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     try {
       final authRepo = ref.read(authRepositoryProvider);
-      print('🔍 Looking for code: $code');
+      debugPrint('🔍 Looking for code: $code');
 
       final usersQuery = await FirebaseFirestore.instance
           .collection('users')
@@ -86,7 +86,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           .get();
 
       if (usersQuery.docs.isEmpty) {
-        print('⚠️ Not found as string, trying as number...');
+        debugPrint('⚠️ Not found as string, trying as number...');
         final codeNum = int.tryParse(code);
         final usersQueryNum = await FirebaseFirestore.instance
             .collection('users')
@@ -104,10 +104,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         usersQuery.docs.first;
       
       final userData = userDoc.data();
-      print('✅ Found user: ${userData['name']} (${userData['role']})');
+      debugPrint('✅ Found user: ${userData['name']} (${userData['role']})');
 
       await authRepo.signInWithCode(code);
-      print('✅ Successfully signed in');
+      debugPrint('✅ Successfully signed in');
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -118,7 +118,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         );
       }
     } catch (e) {
-      print('❌ Error signing in: $e');
+      debugPrint('❌ Error signing in: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(

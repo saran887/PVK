@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:http/http.dart' as http;
 import 'dart:io';
+import 'dart:convert';
 
 class AddProductScreen extends ConsumerStatefulWidget {
   const AddProductScreen({super.key});
@@ -14,20 +15,20 @@ class AddProductScreen extends ConsumerStatefulWidget {
 
 class _AddProductScreenState extends ConsumerState<AddProductScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _productIdController = TextEditingController();
   final _nameController = TextEditingController();
   final _weightController = TextEditingController();
+  final _quantityController = TextEditingController();
   final _priceController = TextEditingController();
   final _imageUrlController = TextEditingController();
   final _categoryController = TextEditingController();
   final _descriptionController = TextEditingController();
   String _selectedUnit = 'kg';
+  String _selectedQuantityUnit = 'pcs';
   bool _isLoading = false;
   bool _isUploading = false;
   List<String> _categories = [];
   String? _selectedCategory;
-  String? _selectedLocationId;
-  String? _selectedLocationName;
-  List<Map<String, dynamic>> _locations = [];
   File? _imageFile;
   String? _uploadedImageUrl;
 
@@ -35,13 +36,14 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
   void initState() {
     super.initState();
     _loadCategories();
-    _loadLocations();
   }
 
   @override
   void dispose() {
+    _productIdController.dispose();
     _nameController.dispose();
     _weightController.dispose();
+    _quantityController.dispose();
     _priceController.dispose();
     _imageUrlController.dispose();
     _categoryController.dispose();
@@ -56,18 +58,7 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
     });
   }
 
-  Future<void> _loadLocations() async {
-    final snapshot = await FirebaseFirestore.instance
-        .collection('locations')
-        .where('isActive', isEqualTo: true)
-        .get();
 
-    setState(() {
-      _locations = snapshot.docs.map((doc) {
-        return {'id': doc.id, ...doc.data()};
-      }).toList();
-    });
-  }
 
   Future<void> _pickImage() async {
     try {
@@ -95,29 +86,85 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
     setState(() => _isUploading = true);
 
     try {
-      final fileName = 'products/${DateTime.now().millisecondsSinceEpoch}.jpg';
-      final storageRef = FirebaseStorage.instance.ref().child(fileName);
+      debugPrint('📤 Uploading image...');
       
-      await storageRef.putFile(_imageFile!);
-      final downloadUrl = await storageRef.getDownloadURL();
+      // Read file as bytes
+      final bytes = await _imageFile!.readAsBytes();
       
-      setState(() {
-        _uploadedImageUrl = downloadUrl;
-        _imageUrlController.text = downloadUrl;
-      });
+      // Get file extension
+      final extension = _imageFile!.path.split('.').last.toLowerCase();
+      final fileName = 'product_${DateTime.now().millisecondsSinceEpoch}.$extension';
+      
+      // Upload to postimg.cc (free, no API key needed)
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse('https://postimg.cc/json'),
+      );
+      
+      request.fields['upload_session'] = DateTime.now().millisecondsSinceEpoch.toString();
+      request.fields['numfiles'] = '1';
+      request.fields['gallery'] = '';
+      request.fields['ui'] = 'json';
+      
+      request.files.add(
+        http.MultipartFile.fromBytes(
+          'file',
+          bytes,
+          filename: fileName,
+        ),
+      );
+      
+      debugPrint('🔄 Sending upload request...');
+      
+      final streamedResponse = await request.send().timeout(
+        const Duration(seconds: 30),
+        onTimeout: () {
+          throw Exception('Upload timeout - Please check your internet connection');
+        },
+      );
+      
+      final response = await http.Response.fromStream(streamedResponse);
+      
+      debugPrint('📡 Response status: ${response.statusCode}');
+      debugPrint('📡 Response body: ${response.body}');
+      
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        
+        // PostImg returns the direct image URL
+        final imageUrl = data['url'] ?? '';
+        
+        if (imageUrl.isEmpty) {
+          throw Exception('No image URL in response');
+        }
+        
+        debugPrint('✅ Image uploaded: $imageUrl');
+        
+        setState(() {
+          _uploadedImageUrl = imageUrl;
+          _imageUrlController.text = imageUrl;
+        });
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Image uploaded successfully!'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Image uploaded successfully!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } else {
+        throw Exception('Upload failed with status: ${response.statusCode}');
       }
     } catch (e) {
+      debugPrint('❌ Upload error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Upload failed: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text('Upload failed: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+          ),
         );
       }
     } finally {
@@ -126,6 +173,7 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
   }
 
   Future<void> _showAddCategoryDialog() async {
+    // ignore: use_build_context_synchronously
     final result = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
@@ -160,8 +208,12 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
       ),
     );
 
+    if (!mounted) return;
+
     if (result != null) {
       await _loadCategories();
+      if (!mounted) return;
+      // ignore: use_build_context_synchronously
       setState(() {
         _selectedCategory = result;
       });
@@ -175,21 +227,54 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
 
     try {
       final imageUrl = _uploadedImageUrl ?? _imageUrlController.text.trim();
+      final productId = _productIdController.text.trim();
 
-      await FirebaseFirestore.instance.collection('products').add({
+      // Check if custom productId already exists
+      if (productId.isNotEmpty) {
+        final existingDoc = await FirebaseFirestore.instance
+            .collection('products')
+            .doc(productId)
+            .get();
+        
+        if (existingDoc.exists) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Product ID already exists. Please use a different ID.'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+          setState(() => _isLoading = false);
+          return;
+        }
+      }
+
+      final productData = {
         'name': _nameController.text.trim(),
         'category': _selectedCategory ?? 'Uncategorized',
-        'locationId': _selectedLocationId,
-        'locationName': _selectedLocationName,
         'description': _descriptionController.text.trim(),
         'weight': double.tryParse(_weightController.text) ?? 0,
-        'unit': _selectedUnit,
+        'weightUnit': _selectedUnit,
+        'quantity': double.tryParse(_quantityController.text) ?? 0,
+        'quantityUnit': _selectedQuantityUnit,
         'price': double.tryParse(_priceController.text) ?? 0,
         'imageUrl': imageUrl,
         'isActive': true,
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
-      });
+      };
+
+      if (productId.isNotEmpty) {
+        await FirebaseFirestore.instance
+            .collection('products')
+            .doc(productId)
+            .set(productData);
+      } else {
+        await FirebaseFirestore.instance
+            .collection('products')
+            .add(productData);
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -238,21 +323,30 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
               },
             ),
             const SizedBox(height: 16),
+            TextFormField(
+              controller: _productIdController,
+              decoration: const InputDecoration(
+                labelText: 'Product ID (Optional - Auto-generated if empty)',
+                prefixIcon: Icon(Icons.qr_code),
+                hintText: 'e.g., PROD001',
+              ),
+            ),
+            const SizedBox(height: 16),
             Row(
               children: [
                 Expanded(
                   flex: 3,
                   child: DropdownButtonFormField<String>(
-                    value: _selectedCategory,
+                     value: _selectedCategory,
                     decoration: const InputDecoration(
                       labelText: 'Category',
                       prefixIcon: Icon(Icons.category),
                     ),
                     items: _categories.map((cat) {
-                      return DropdownMenuItem(value: cat, child: Text(cat));
+                       return DropdownMenuItem<String>(value: cat, child: Text(cat));
                     }).toList(),
-                    onChanged: (value) {
-                      setState(() => _selectedCategory = value);
+                     onChanged: (value) {
+                       setState(() => _selectedCategory = value);
                     },
                   ),
                 ),
@@ -265,28 +359,6 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
                   ),
                 ),
               ],
-            ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
-              value: _selectedLocationId,
-              decoration: const InputDecoration(
-                labelText: 'Location (Optional)',
-                prefixIcon: Icon(Icons.location_city),
-              ),
-              items: _locations.map((loc) {
-                return DropdownMenuItem(
-                  value: loc['id'],
-                  child: Text(loc['name'] ?? ''),
-                );
-              }).toList(),
-              onChanged: (value) {
-                setState(() {
-                  _selectedLocationId = value;
-                  _selectedLocationName = value != null
-                      ? _locations.firstWhere((loc) => loc['id'] == value)['name']
-                      : null;
-                });
-              },
             ),
             const SizedBox(height: 16),
             TextFormField(
@@ -305,7 +377,7 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
                   child: TextFormField(
                     controller: _weightController,
                     decoration: const InputDecoration(
-                      labelText: 'Weight/Quantity',
+                      labelText: 'Weight',
                       prefixIcon: Icon(Icons.monitor_weight),
                     ),
                     keyboardType: TextInputType.number,
@@ -323,20 +395,61 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: _selectedUnit,
+                     value: _selectedUnit,
                     decoration: const InputDecoration(
                       labelText: 'Unit',
                     ),
                     items: const [
-                      DropdownMenuItem(value: 'kg', child: Text('kg')),
-                      DropdownMenuItem(value: 'g', child: Text('g')),
-                      DropdownMenuItem(value: 'l', child: Text('l')),
-                      DropdownMenuItem(value: 'ml', child: Text('ml')),
-                      DropdownMenuItem(value: 'pcs', child: Text('pcs')),
-                      DropdownMenuItem(value: 'box', child: Text('box')),
+                      DropdownMenuItem<String>(value: 'kg', child: Text('kg')),
+                      DropdownMenuItem<String>(value: 'g', child: Text('g')),
+                      DropdownMenuItem<String>(value: 'l', child: Text('l')),
+                      DropdownMenuItem<String>(value: 'ml', child: Text('ml')),
                     ],
-                    onChanged: (value) {
-                      setState(() => _selectedUnit = value!);
+                     onChanged: (value) {
+                       setState(() => _selectedUnit = value ?? 'kg');
+                    },
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: TextFormField(
+                    controller: _quantityController,
+                    decoration: const InputDecoration(
+                      labelText: 'Quantity',
+                      prefixIcon: Icon(Icons.inventory_2),
+                    ),
+                    keyboardType: TextInputType.number,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Required';
+                      }
+                      if (double.tryParse(value) == null) {
+                        return 'Invalid number';
+                      }
+                      return null;
+                    },
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                     value: _selectedQuantityUnit,
+                    decoration: const InputDecoration(
+                      labelText: 'Unit',
+                    ),
+                    items: const [
+                      DropdownMenuItem<String>(value: 'pcs', child: Text('pcs')),
+                      DropdownMenuItem<String>(value: 'box', child: Text('box')),
+                      DropdownMenuItem<String>(value: 'pack', child: Text('pack')),
+                      DropdownMenuItem<String>(value: 'carton', child: Text('carton')),
+                    ],
+                     onChanged: (value) {
+                       setState(() => _selectedQuantityUnit = value ?? 'pcs');
                     },
                   ),
                 ),
@@ -363,7 +476,7 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
             const SizedBox(height: 24),
             const Text('Product Image', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
-            if (_uploadedImageUrl != null || _imageFile != null)
+            if (_uploadedImageUrl != null || _imageFile != null || _imageUrlController.text.isNotEmpty)
               Container(
                 height: 200,
                 decoration: BoxDecoration(
@@ -371,10 +484,16 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: _uploadedImageUrl != null
-                    ? Image.network(_uploadedImageUrl!, fit: BoxFit.cover)
+                    ? Image.network(_uploadedImageUrl!, fit: BoxFit.cover, errorBuilder: (context, error, stackTrace) {
+                        return const Center(child: Icon(Icons.broken_image, size: 50));
+                      })
                     : _imageFile != null
                         ? Image.file(_imageFile!, fit: BoxFit.cover)
-                        : const SizedBox(),
+                        : _imageUrlController.text.isNotEmpty
+                            ? Image.network(_imageUrlController.text, fit: BoxFit.cover, errorBuilder: (context, error, stackTrace) {
+                                return const Center(child: Icon(Icons.broken_image, size: 50));
+                              })
+                            : const SizedBox(),
               ),
             const SizedBox(height: 8),
             Row(
@@ -416,6 +535,9 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
                 prefixIcon: Icon(Icons.link),
               ),
               enabled: _uploadedImageUrl == null,
+              onChanged: (value) {
+                setState(() {}); // Trigger rebuild to show image preview
+              },
             ),
             const SizedBox(height: 32),
             ElevatedButton(

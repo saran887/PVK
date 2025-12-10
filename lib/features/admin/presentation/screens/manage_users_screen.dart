@@ -98,7 +98,7 @@ class ManageUsersScreen extends ConsumerWidget {
                 margin: const EdgeInsets.only(bottom: 12),
                 child: ListTile(
                   leading: CircleAvatar(
-                    backgroundColor: getRoleColor().withOpacity(0.1),
+                    backgroundColor: Color.alphaBlend(getRoleColor().withAlpha((0.1 * 255).toInt()), Colors.white),
                     child: Icon(getRoleIcon(), color: getRoleColor()),
                   ),
                   title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -111,7 +111,7 @@ class ManageUsersScreen extends ConsumerWidget {
                       const SizedBox(height: 4),
                       Chip(
                         label: Text(role, style: const TextStyle(fontSize: 12)),
-                        backgroundColor: getRoleColor().withOpacity(0.1),
+                        backgroundColor: Color.alphaBlend(getRoleColor().withAlpha((0.1 * 255).toInt()), Colors.white),
                         labelStyle: TextStyle(
                           color: getRoleColor(),
                           fontWeight: FontWeight.bold,

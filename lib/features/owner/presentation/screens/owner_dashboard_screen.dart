@@ -7,7 +7,7 @@ class OwnerDashboardScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final user = ref.watch(currentUserProvider).value;
+    final user = ref.watch(currentUserProvider).asData?.value;
 
     return Scaffold(
       appBar: AppBar(
@@ -34,7 +34,7 @@ class OwnerDashboardScreen extends ConsumerWidget {
                   children: [
                     CircleAvatar(
                       radius: 30,
-                      backgroundColor: Colors.purple.withOpacity(0.1),
+                      backgroundColor: Color.alphaBlend(Colors.purple.withAlpha((0.1 * 255).toInt()), Colors.white),
                       child: const Icon(Icons.business_center, size: 30, color: Colors.purple),
                     ),
                     const SizedBox(width: 16),

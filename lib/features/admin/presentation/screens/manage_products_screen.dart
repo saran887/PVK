@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter/foundation.dart';
 
 class ManageProductsScreen extends ConsumerWidget {
   const ManageProductsScreen({super.key});
@@ -47,45 +48,73 @@ class ManageProductsScreen extends ConsumerWidget {
             );
           }
 
-          return GridView.builder(
+          return ListView(
             padding: const EdgeInsets.all(16),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              childAspectRatio: 0.75,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-            ),
-            itemCount: products.length,
-            itemBuilder: (context, index) {
+            children: [
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  childAspectRatio: 0.75,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                ),
+                itemCount: products.length,
+                itemBuilder: (context, index) {
               final product = products[index].data() as Map<String, dynamic>;
               final productId = products[index].id;
               final name = product['name'] ?? 'Unknown';
               final price = product['price'] ?? 0;
               final imageUrl = product['imageUrl'] ?? '';
               final category = product['category'] ?? '';
-              final locationName = product['locationName'] ?? '';
               final weight = product['weight'] ?? 0;
-              final unit = product['unit'] ?? '';
+              final weightUnit = product['weightUnit'] ?? '';
+              final quantity = product['quantity'] ?? 0;
+              final quantityUnit = product['quantityUnit'] ?? '';
+              
+              // Debug print
+              debugPrint('Product: $name, ImageURL: $imageUrl');
 
               return Card(
                 clipBehavior: Clip.antiAlias,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
+                    Container(
+                      height: 120,
+                      width: double.infinity,
+                      color: Colors.grey[300],
                       child: imageUrl.isNotEmpty
                           ? Image.network(
                               imageUrl,
                               fit: BoxFit.cover,
-                              width: double.infinity,
-                              errorBuilder: (_, __, ___) => Container(
-                                color: Colors.grey[300],
-                                child: const Icon(Icons.image, size: 64),
-                              ),
+                              errorBuilder: (context, error, stackTrace) {
+                                debugPrint('Image load error for $name: $error');
+                                return const Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.broken_image, size: 40, color: Colors.grey),
+                                      SizedBox(height: 4),
+                                      Text('Image not found', style: TextStyle(fontSize: 10)),
+                                    ],
+                                  ),
+                                );
+                              },
+                              loadingBuilder: (context, child, loadingProgress) {
+                                if (loadingProgress == null) return child;
+                                return const Center(
+                                  child: CircularProgressIndicator(),
+                                );
+                              },
                             )
-                          : Container(
+                          : const Center(
+                              child: Icon(Icons.image, size: 50, color: Colors.grey),
+                            ),
+                    ),
                               color: Colors.grey[300],
-                              child: const Icon(Icons.image, size: 64),
+                              child: const Icon(Icons.image, size: 50, color: Colors.grey),
                             ),
                     ),
                     Padding(
@@ -95,31 +124,48 @@ class ManageProductsScreen extends ConsumerWidget {
                         children: [
                           Text(
                             name,
-                            style: const TextStyle(fontWeight: FontWeight.bold),
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
+                          const SizedBox(height: 4),
                           if (category.isNotEmpty)
-                            Text(
-                              category,
-                              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                            ),
-                          if (locationName.isNotEmpty)
                             Row(
                               children: [
-                                Icon(Icons.location_city, size: 12, color: Colors.blue[700]),
+                                Icon(Icons.category, size: 12, color: Colors.grey[600]),
                                 const SizedBox(width: 4),
-                                Text(
-                                  locationName,
-                                  style: TextStyle(fontSize: 12, color: Colors.blue[700]),
+                                Expanded(
+                                  child: Text(
+                                    category,
+                                    style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ),
                               ],
                             ),
-                          Text(
-                            '$weight $unit',
-                            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                          ),
-                          const SizedBox(height: 4),
+                          if (weight > 0 && weightUnit.isNotEmpty)
+                            Row(
+                              children: [
+                                Icon(Icons.monitor_weight, size: 12, color: Colors.grey[600]),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '$weight $weightUnit',
+                                  style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                                ),
+                              ],
+                            ),
+                          if (quantity > 0 && quantityUnit.isNotEmpty)
+                            Row(
+                              children: [
+                                Icon(Icons.inventory_2, size: 12, color: Colors.grey[600]),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '$quantity $quantityUnit',
+                                  style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                                ),
+                              ],
+                            ),
+                          const SizedBox(height: 6),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
@@ -128,6 +174,7 @@ class ManageProductsScreen extends ConsumerWidget {
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   color: Colors.green,
+                                  fontSize: 15,
                                 ),
                               ),
                               PopupMenuButton(
@@ -204,6 +251,8 @@ class ManageProductsScreen extends ConsumerWidget {
                 ),
               );
             },
+              ),
+            ],
           );
         },
       ),

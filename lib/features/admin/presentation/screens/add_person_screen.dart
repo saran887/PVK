@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'dart:math';
 import '../../../../shared/enums/app_enums.dart';
-import '../../../auth/providers/auth_provider.dart';
 
 class AddPersonScreen extends ConsumerStatefulWidget {
   const AddPersonScreen({super.key});
@@ -15,12 +16,9 @@ class AddPersonScreen extends ConsumerStatefulWidget {
 class _AddPersonScreenState extends ConsumerState<AddPersonScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
   final _phoneController = TextEditingController();
   final _codeController = TextEditingController();
   UserRole _selectedRole = UserRole.sales;
-  bool _obscurePassword = true;
   bool _isLoading = false;
 
   @override
@@ -32,8 +30,6 @@ class _AddPersonScreenState extends ConsumerState<AddPersonScreen> {
   @override
   void dispose() {
     _nameController.dispose();
-    _emailController.dispose();
-    _passwordController.dispose();
     _phoneController.dispose();
     _codeController.dispose();
     super.dispose();
@@ -51,20 +47,35 @@ class _AddPersonScreenState extends ConsumerState<AddPersonScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final authRepo = ref.read(authRepositoryProvider);
-      
-      final userCredential = await authRepo.currentUser!.app.auth().createUserWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
+      final random = Random();
+      final randomEmail = 'user${DateTime.now().millisecondsSinceEpoch}@pkv.local';
+      final randomPassword = 'pwd${random.nextInt(999999).toString().padLeft(6, '0')}';
+
+      final primaryApp = Firebase.app();
+      final secondaryApp = await Firebase.initializeApp(
+        name: 'temp-admin-${DateTime.now().microsecondsSinceEpoch}',
+        options: primaryApp.options,
       );
+
+      UserCredential userCredential;
+      try {
+        final tempAuth = FirebaseAuth.instanceFor(app: secondaryApp);
+        userCredential = await tempAuth.createUserWithEmailAndPassword(
+          email: randomEmail,
+          password: randomPassword,
+        );
+        await tempAuth.signOut();
+      } finally {
+        await secondaryApp.delete();
+      }
 
       await FirebaseFirestore.instance.collection('users').doc(userCredential.user!.uid).set({
         'name': _nameController.text.trim(),
-        'email': _emailController.text.trim(),
+        'email': randomEmail,
         'phone': _phoneController.text.trim(),
         'code': _codeController.text,
         'role': _selectedRole.name.toUpperCase(),
-        'password': _passwordController.text,
+        'password': randomPassword,
         'isActive': true,
         'assignedRoutes': [],
         'createdAt': FieldValue.serverTimestamp(),
@@ -141,24 +152,6 @@ class _AddPersonScreenState extends ConsumerState<AddPersonScreen> {
             ),
             const SizedBox(height: 16),
             TextFormField(
-              controller: _emailController,
-              decoration: const InputDecoration(
-                labelText: 'Email',
-                prefixIcon: Icon(Icons.email),
-              ),
-              keyboardType: TextInputType.emailAddress,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please enter an email';
-                }
-                if (!value.contains('@')) {
-                  return 'Please enter a valid email';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
               controller: _phoneController,
               decoration: const InputDecoration(
                 labelText: 'Phone Number',
@@ -173,37 +166,15 @@ class _AddPersonScreenState extends ConsumerState<AddPersonScreen> {
               },
             ),
             const SizedBox(height: 16),
-            TextFormField(
-              controller: _passwordController,
-              decoration: InputDecoration(
-                labelText: 'Password',
-                prefixIcon: const Icon(Icons.lock),
-                suffixIcon: IconButton(
-                  icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off),
-                  onPressed: () {
-                    setState(() => _obscurePassword = !_obscurePassword);
-                  },
-                ),
-              ),
-              obscureText: _obscurePassword,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please enter a password';
-                }
-                if (value.length < 6) {
-                  return 'Password must be at least 6 characters';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
             DropdownButtonFormField<UserRole>(
               value: _selectedRole,
               decoration: const InputDecoration(
                 labelText: 'Role',
                 prefixIcon: Icon(Icons.admin_panel_settings),
               ),
-              items: UserRole.values.map((role) {
+              items: UserRole.values
+                  .where((role) => role != UserRole.admin && role != UserRole.owner)
+                  .map((role) {
                 return DropdownMenuItem(
                   value: role,
                   child: Text(role.name.toUpperCase()),

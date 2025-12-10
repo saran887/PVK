@@ -7,7 +7,7 @@ class DeliveryHomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final user = ref.watch(currentUserProvider).value;
+    final user = ref.watch(currentUserProvider).asData?.value;
 
     return Scaffold(
       appBar: AppBar(
@@ -34,7 +34,7 @@ class DeliveryHomeScreen extends ConsumerWidget {
                   children: [
                     CircleAvatar(
                       radius: 30,
-                      backgroundColor: Colors.teal.withOpacity(0.1),
+                      backgroundColor: Color.alphaBlend(Colors.teal.withAlpha((0.1 * 255).toInt()), Colors.white),
                       child: const Icon(Icons.local_shipping, size: 30, color: Colors.teal),
                     ),
                     const SizedBox(width: 16),

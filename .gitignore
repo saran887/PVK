@@ -41,6 +41,10 @@ app.*.map.json
 # Seed node_modules
 seed/node_modules/
 
+# Scripts
+scripts/service-account-key.json
+scripts/node_modules/
+
 # Firebase API keys (use firebase_options_local.dart locally)
 lib/firebase_options_local.dart
 android/app/google-services.json

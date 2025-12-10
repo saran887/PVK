@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,16 +8,38 @@ import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 
 void main() async {
+    // DEBUG: Seed Firestore with test user code 2000
+    Future<void> addTestUser() async {
+      await FirebaseFirestore.instance.collection('users').add({
+        'code': '2000',
+        'name': 'Test User',
+        'email': 'testuser@example.com',
+      });
+    }
+    
+    // DEBUG: Remove all products from Firestore
+    Future<void> removeAllProducts() async {
+      final products = await FirebaseFirestore.instance.collection('products').get();
+      for (var doc in products.docs) {
+        await doc.reference.delete();
+      }
+      debugPrint('✅ Removed ${products.docs.length} products from database');
+    }
+    
+    // Uncomment to run once
   WidgetsFlutterBinding.ensureInitialized();
   
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-    print('✅ Firebase initialized successfully');
+    debugPrint('✅ Firebase initialized successfully');
+    // Run Firestore seed after Firebase is initialized
+    // await addTestUser(); // Comment out after first run
+    // await removeAllProducts(); // Comment out after first run
   } catch (e, stackTrace) {
-    print('❌ Firebase initialization error: $e');
-    print('Stack trace: $stackTrace');
+    debugPrint('❌ Firebase initialization error: $e');
+    debugPrint('Stack trace: $stackTrace');
   }
 
   await SystemChrome.setPreferredOrientations([

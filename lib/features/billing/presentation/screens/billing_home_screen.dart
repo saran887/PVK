@@ -7,7 +7,7 @@ class BillingHomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final user = ref.watch(currentUserProvider).value;
+    final user = ref.watch(currentUserProvider).asData?.value;
 
     return Scaffold(
       appBar: AppBar(
@@ -34,7 +34,7 @@ class BillingHomeScreen extends ConsumerWidget {
                   children: [
                     CircleAvatar(
                       radius: 30,
-                      backgroundColor: Colors.orange.withOpacity(0.1),
+                      backgroundColor: Color.alphaBlend(Colors.orange.withAlpha((0.1 * 255).toInt()), Colors.white),
                       child: const Icon(Icons.receipt, size: 30, color: Colors.orange),
                     ),
                     const SizedBox(width: 16),

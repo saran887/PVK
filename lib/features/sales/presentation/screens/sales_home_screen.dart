@@ -8,7 +8,7 @@ class SalesHomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final user = ref.watch(currentUserProvider).value;
+    final user = ref.watch(currentUserProvider).asData?.value;
 
     return Scaffold(
       appBar: AppBar(
@@ -35,7 +35,7 @@ class SalesHomeScreen extends ConsumerWidget {
                   children: [
                     CircleAvatar(
                       radius: 30,
-                      backgroundColor: Theme.of(context).primaryColor.withOpacity(0.1),
+                      backgroundColor: Color.alphaBlend(Theme.of(context).primaryColor.withAlpha((0.1 * 255).toInt()), Colors.white),
                       child: Icon(
                         Icons.shopping_cart,
                         size: 30,

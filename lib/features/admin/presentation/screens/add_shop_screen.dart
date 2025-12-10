@@ -136,16 +136,28 @@ class _AddShopScreenState extends ConsumerState<AddShopScreen> {
                 labelText: 'Location',
                 prefixIcon: Icon(Icons.location_city),
               ),
-              items: _locations.map((loc) {
-                return DropdownMenuItem(
-                  value: loc['id'],
-                  child: Text(loc['name'] ?? ''),
+              items: _locations
+                  .where((loc) => loc['id'] != null)
+                  .map<DropdownMenuItem<String>>((loc) {
+                final id = loc['id'].toString();
+                final name = loc['name']?.toString() ?? '';
+                return DropdownMenuItem<String>(
+                  value: id,
+                  child: Text(name),
                 );
               }).toList(),
               onChanged: (value) {
                 setState(() {
                   _selectedLocationId = value;
-                  _selectedLocationName = _locations.firstWhere((loc) => loc['id'] == value)['name'];
+                  if (value == null) {
+                    _selectedLocationName = null;
+                  } else {
+                    final match = _locations.firstWhere(
+                      (loc) => loc['id'].toString() == value,
+                      orElse: () => {},
+                    );
+                    _selectedLocationName = match['name']?.toString();
+                  }
                 });
               },
               validator: (value) {

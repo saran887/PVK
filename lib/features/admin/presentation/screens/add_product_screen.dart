@@ -80,6 +80,63 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
     }
   }
 
+  Future<String?> _uploadBytesToHost(List<int> bytes, String fileName) async {
+    // Try multiple hosts in order until one succeeds
+    final hosts = [
+      // Try imgbb.io (no auth needed for small files)
+      () async {
+        debugPrint('🔄 Trying freeimage.host...');
+        final request = http.MultipartRequest('POST', Uri.parse('https://freeimage.host/api/1/upload'));
+        request.fields['key'] = '6d207e02198a847aa98d0a2a901485a5'; // Free public key
+        request.files.add(http.MultipartFile.fromBytes('source', bytes, filename: fileName));
+        final response = await http.Response.fromStream(await request.send());
+        if (response.statusCode == 200) {
+          final json = jsonDecode(response.body);
+          return json['image']?['url'] as String?;
+        }
+        return null;
+      },
+      // Fallback: catbox.moe
+      () async {
+        debugPrint('🔄 Trying catbox.moe...');
+        final request = http.MultipartRequest('POST', Uri.parse('https://catbox.moe/user/api.php'));
+        request.fields['reqtype'] = 'fileupload';
+        request.files.add(http.MultipartFile.fromBytes('fileToUpload', bytes, filename: fileName));
+        final response = await http.Response.fromStream(await request.send());
+        if (response.statusCode == 200 && response.body.startsWith('http')) {
+          return response.body.trim();
+        }
+        return null;
+      },
+      // Fallback: 0x0.st
+      () async {
+        debugPrint('🔄 Trying 0x0.st...');
+        final request = http.MultipartRequest('POST', Uri.parse('https://0x0.st'));
+        request.files.add(http.MultipartFile.fromBytes('file', bytes, filename: fileName));
+        final response = await http.Response.fromStream(await request.send());
+        if (response.statusCode == 200 && response.body.trim().startsWith('http')) {
+          return response.body.trim();
+        }
+        return null;
+      },
+    ];
+
+    for (final hostFn in hosts) {
+      try {
+        final url = await hostFn().timeout(const Duration(seconds: 30));
+        if (url != null && url.isNotEmpty) {
+          debugPrint('✅ Upload successful: $url');
+          return url;
+        }
+      } catch (e) {
+        debugPrint('⚠️ Host failed: $e');
+        continue;
+      }
+    }
+    
+    return null;
+  }
+
   Future<void> _uploadImage() async {
     if (_imageFile == null) return;
 
@@ -88,64 +145,28 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
     try {
       debugPrint('📤 Uploading image...');
       
-      // Read file as bytes
       final bytes = await _imageFile!.readAsBytes();
       final extension = _imageFile!.path.split('.').last.toLowerCase();
       final fileName = 'product_${DateTime.now().millisecondsSinceEpoch}.$extension';
       
-      // Use 0x0.st - free, reliable, no API key needed
-      final request = http.MultipartRequest(
-        'POST',
-        Uri.parse('https://0x0.st'),
-      );
+      final imageUrl = await _uploadBytesToHost(bytes, fileName);
       
-      request.files.add(
-        http.MultipartFile.fromBytes(
-          'file',
-          bytes,
-          filename: fileName,
-        ),
-      );
+      if (imageUrl == null || imageUrl.isEmpty) {
+        throw Exception('All upload services failed. Please try again later.');
+      }
       
-      debugPrint('🔄 Sending upload request...');
-      
-      final streamedResponse = await request.send().timeout(
-        const Duration(seconds: 30),
-        onTimeout: () {
-          throw Exception('Upload timeout - Please check your internet connection');
-        },
-      );
-      
-      final response = await http.Response.fromStream(streamedResponse);
-      
-      debugPrint('📡 Response status: ${response.statusCode}');
-      debugPrint('📡 Response body: ${response.body}');
-      
-      if (response.statusCode == 200) {
-        // 0x0.st returns the direct URL in the response body
-        final imageUrl = response.body.trim();
-        
-        if (imageUrl.isEmpty || !imageUrl.startsWith('http')) {
-          throw Exception('Invalid image URL in response');
-        }
-        
-        debugPrint('✅ Image uploaded: $imageUrl');
-        
-        setState(() {
-          _uploadedImageUrl = imageUrl;
-          _imageUrlController.text = imageUrl;
-        });
+      setState(() {
+        _uploadedImageUrl = imageUrl;
+        _imageUrlController.text = imageUrl;
+      });
 
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Image uploaded successfully!'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
-      } else {
-        throw Exception('Upload failed with status: ${response.statusCode}');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Image uploaded successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
       }
     } catch (e) {
       debugPrint('❌ Upload error: $e');
@@ -217,7 +238,7 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final imageUrl = _uploadedImageUrl ?? _imageUrlController.text.trim();
+      String imageUrl = _uploadedImageUrl ?? _imageUrlController.text.trim();
       final productId = _productIdController.text.trim();
 
       // Check if custom productId already exists
@@ -238,6 +259,56 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
           }
           setState(() => _isLoading = false);
           return;
+        }
+      }
+      // If user pasted a data URL (base64) into the manual URL field, upload it
+      if (imageUrl.isNotEmpty && imageUrl.startsWith('data:')) {
+        setState(() => _isUploading = true);
+        try {
+          debugPrint('📤 Detected data URL, uploading decoded bytes...');
+          final data = imageUrl;
+          final parts = data.split(',');
+          final base64Part = parts.length > 1 ? parts[1] : data.replaceFirst(RegExp(r'data:.*;base64,'), '');
+          final bytes = base64Decode(base64Part);
+
+          String ext = 'jpg';
+          final mimeMatch = RegExp(r'data:image/(.*);base64').firstMatch(data);
+          if (mimeMatch != null && mimeMatch.groupCount >= 1) {
+            final m = mimeMatch.group(1)!.toLowerCase();
+            if (m.contains('png')) ext = 'png';
+            else if (m.contains('jpeg') || m.contains('jpg')) ext = 'jpg';
+            else if (m.contains('gif')) ext = 'gif';
+          }
+
+          final fileName = 'product_${DateTime.now().millisecondsSinceEpoch}.$ext';
+          final uploadedUrl = await _uploadBytesToHost(bytes, fileName);
+          
+          if (uploadedUrl == null || uploadedUrl.isEmpty) {
+            throw Exception('All upload services failed. Please try again later.');
+          }
+          
+          imageUrl = uploadedUrl;
+          setState(() {
+            _uploadedImageUrl = uploadedUrl;
+            _imageUrlController.text = uploadedUrl;
+          });
+          
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Image uploaded from base64 successfully!'), backgroundColor: Colors.green),
+            );
+          }
+        } catch (e) {
+          debugPrint('❌ Data-URL upload error: $e');
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Failed to upload image: $e'), backgroundColor: Colors.red),
+            );
+          }
+          setState(() => _isLoading = false);
+          return;
+        } finally {
+          setState(() => _isUploading = false);
         }
       }
 
@@ -481,9 +552,22 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
                     : _imageFile != null
                         ? Image.file(_imageFile!, fit: BoxFit.cover)
                         : _imageUrlController.text.isNotEmpty
-                            ? Image.network(_imageUrlController.text, fit: BoxFit.cover, errorBuilder: (context, error, stackTrace) {
-                                return const Center(child: Icon(Icons.broken_image, size: 50));
-                              })
+                            ? (_imageUrlController.text.trim().startsWith('data:')
+                                ? Builder(builder: (context) {
+                                    try {
+                                      final data = _imageUrlController.text.trim();
+                                      final parts = data.split(',');
+                                      final bytes = base64Decode(parts.length > 1 ? parts[1] : data);
+                                      return Image.memory(bytes, fit: BoxFit.cover, errorBuilder: (context, error, stackTrace) {
+                                        return const Center(child: Icon(Icons.broken_image, size: 50));
+                                      });
+                                    } catch (e) {
+                                      return const Center(child: Icon(Icons.broken_image, size: 50));
+                                    }
+                                  })
+                                : Image.network(_imageUrlController.text, fit: BoxFit.cover, errorBuilder: (context, error, stackTrace) {
+                                    return const Center(child: Icon(Icons.broken_image, size: 50));
+                                  }))
                             : const SizedBox(),
               ),
             const SizedBox(height: 8),

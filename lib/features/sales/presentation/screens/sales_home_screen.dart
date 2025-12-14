@@ -83,11 +83,7 @@ class SalesHomeScreen extends ConsumerWidget {
                     icon: Icons.add_shopping_cart,
                     title: 'Create Order',
                     color: Colors.green,
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Create order - Coming soon!')),
-                      );
-                    },
+                    onTap: () => context.push('/sales/create-order'),
                   ),
                   _QuickActionCard(
                     icon: Icons.receipt_long,

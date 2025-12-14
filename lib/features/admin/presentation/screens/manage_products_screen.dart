@@ -56,9 +56,9 @@ class ManageProductsScreen extends ConsumerWidget {
                 physics: const NeverScrollableScrollPhysics(),
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
-                  childAspectRatio: 0.75,
+                  childAspectRatio: 0.60,
                   crossAxisSpacing: 12,
-                  mainAxisSpacing: 14,
+                  mainAxisSpacing: 12,
                 ),
                 itemCount: products.length,
                 itemBuilder: (context, index) {

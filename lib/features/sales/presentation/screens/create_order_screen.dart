@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../../auth/providers/auth_provider.dart';
 
 class CreateOrderScreen extends ConsumerStatefulWidget {
   const CreateOrderScreen({super.key});
@@ -13,6 +14,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
   final _formKey = GlobalKey<FormState>();
   String? _selectedShopId;
   String? _selectedShopName;
+  String? _selectedShopLocationId;
   final List<Map<String, dynamic>> _orderItems = [];
   bool _isLoading = false;
 
@@ -43,10 +45,23 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                           ),
                           const SizedBox(height: 12),
                           StreamBuilder<QuerySnapshot>(
-                            stream: FirebaseFirestore.instance
-                                .collection('shops')
-                                .orderBy('name')
-                                .snapshots(),
+                            stream: () {
+                              final currentUser = ref.watch(currentUserProvider).asData?.value;
+                              final userLocationId = currentUser?.locationId ?? '';
+                              
+                              if (userLocationId.isNotEmpty) {
+                                return FirebaseFirestore.instance
+                                    .collection('shops')
+                                    .where('locationId', isEqualTo: userLocationId)
+                                    .orderBy('name')
+                                    .snapshots();
+                              } else {
+                                return FirebaseFirestore.instance
+                                    .collection('shops')
+                                    .orderBy('name')
+                                    .snapshots();
+                              }
+                            }(),
                             builder: (context, snapshot) {
                               if (snapshot.hasError) {
                                 return Text('Error: ${snapshot.error}');
@@ -82,6 +97,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                                     final selectedShop = shops.firstWhere((s) => s.id == value);
                                     final data = selectedShop.data() as Map<String, dynamic>;
                                     _selectedShopName = data['name'] ?? 'Unknown';
+                                    _selectedShopLocationId = data['locationId'] as String?;
                                   });
                                 },
                                 validator: (value) {
@@ -267,9 +283,12 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
   }
 
   void _addOrderItem() async {
-    final result = await showDialog<Map<String, dynamic>>(
-      context: context,
-      builder: (context) => const _AddOrderItemDialog(),
+    final result = await Navigator.push<Map<String, dynamic>>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const _SelectProductScreen(),
+        fullscreenDialog: true,
+      ),
     );
 
     if (result != null) {
@@ -303,6 +322,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
       await FirebaseFirestore.instance.collection('orders').add({
         'shopId': _selectedShopId,
         'shopName': _selectedShopName,
+        'shopLocationId': _selectedShopLocationId ?? '',
         'items': _orderItems,
         'totalAmount': _calculateTotal(),
         'totalItems': _orderItems.length,
@@ -337,155 +357,329 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
   }
 }
 
-class _AddOrderItemDialog extends StatefulWidget {
-  const _AddOrderItemDialog();
+class _SelectProductScreen extends StatefulWidget {
+  const _SelectProductScreen();
 
   @override
-  State<_AddOrderItemDialog> createState() => _AddOrderItemDialogState();
+  State<_SelectProductScreen> createState() => _SelectProductScreenState();
 }
 
-class _AddOrderItemDialogState extends State<_AddOrderItemDialog> {
-  final _formKey = GlobalKey<FormState>();
-  String? _selectedProductId;
-  String? _selectedProductName;
-  double? _selectedProductPrice;
-  final _quantityController = TextEditingController(text: '1');
+class _SelectProductScreenState extends State<_SelectProductScreen> {
+  String? _selectedCategory;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
 
   @override
   void dispose() {
-    _quantityController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Add Order Item'),
-      content: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Select Product'),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(130),
           child: Column(
-            mainAxisSize: MainAxisSize.min,
             children: [
-              StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection('products')
-                    .where('isActive', isEqualTo: true)
-                    .orderBy('name')
-                    .snapshots(),
-                builder: (context, snapshot) {
-                  if (snapshot.hasError) {
-                    return Text('Error: ${snapshot.error}');
-                  }
-
-                  if (!snapshot.hasData) {
-                    return const CircularProgressIndicator();
-                  }
-
-                  final products = snapshot.data!.docs;
-
-                  if (products.isEmpty) {
-                    return const Text('No products available');
-                  }
-
-                  return DropdownButtonFormField<String>(
-                    value: _selectedProductId,
-                    decoration: const InputDecoration(
-                      labelText: 'Product',
-                      prefixIcon: Icon(Icons.shopping_bag),
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Search products...',
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () {
+                              setState(() {
+                                _searchController.clear();
+                                _searchQuery = '';
+                              });
+                            },
+                          )
+                        : null,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    items: products.map((product) {
-                      final data = product.data() as Map<String, dynamic>;
-                      final name = data['name'] ?? 'Unknown';
-                      final price = data['price'] ?? 0;
-                      return DropdownMenuItem<String>(
-                        value: product.id,
-                        child: Text('$name - ₹${price.toStringAsFixed(2)}'),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedProductId = value;
-                        final selectedProduct = products.firstWhere((p) => p.id == value);
-                        final data = selectedProduct.data() as Map<String, dynamic>;
-                        _selectedProductName = data['name'] ?? 'Unknown';
-                        _selectedProductPrice = (data['price'] ?? 0).toDouble();
-                      });
-                    },
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please select a product';
-                      }
-                      return null;
-                    },
+                    filled: true,
+                    fillColor: Colors.white,
+                  ),
+                  onChanged: (value) {
+                    setState(() {
+                      _searchQuery = value.toLowerCase();
+                    });
+                  },
+                ),
+              ),
+              StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance.collection('categories').snapshots(),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) return const SizedBox();
+
+                  final categories = snapshot.data!.docs;
+                  if (categories.isEmpty) return const SizedBox();
+
+                  return SizedBox(
+                    height: 50,
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: ChoiceChip(
+                            label: const Text('All'),
+                            selected: _selectedCategory == null,
+                            onSelected: (selected) {
+                              setState(() {
+                                _selectedCategory = null;
+                              });
+                            },
+                          ),
+                        ),
+                        ...categories.map((cat) {
+                          final categoryName = cat.data() as Map<String, dynamic>?;
+                          final name = categoryName?['name'] ?? 'Unknown';
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: ChoiceChip(
+                              label: Text(name),
+                              selected: _selectedCategory == name,
+                              onSelected: (selected) {
+                                setState(() {
+                                  _selectedCategory = selected ? name : null;
+                                });
+                              },
+                            ),
+                          );
+                        }).toList(),
+                      ],
+                    ),
                   );
                 },
               ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _quantityController,
-                decoration: const InputDecoration(
-                  labelText: 'Quantity',
-                  prefixIcon: Icon(Icons.numbers),
-                ),
-                keyboardType: TextInputType.number,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter quantity';
-                  }
-                  if (double.tryParse(value) == null || double.parse(value) <= 0) {
-                    return 'Please enter valid quantity';
-                  }
-                  return null;
-                },
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      ),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('products')
+            .where('isActive', isEqualTo: true)
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          }
+
+          if (!snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          var products = snapshot.data!.docs;
+
+          // Filter by category
+          if (_selectedCategory != null) {
+            products = products.where((product) {
+              final data = product.data() as Map<String, dynamic>;
+              return data['category'] == _selectedCategory;
+            }).toList();
+          }
+
+          // Filter by search query
+          if (_searchQuery.isNotEmpty) {
+            products = products.where((product) {
+              final data = product.data() as Map<String, dynamic>;
+              final name = (data['name'] ?? '').toString().toLowerCase();
+              return name.contains(_searchQuery);
+            }).toList();
+          }
+
+          // Sort by name
+          products.sort((a, b) {
+            final aData = a.data() as Map<String, dynamic>;
+            final bData = b.data() as Map<String, dynamic>;
+            final aName = aData['name'] ?? '';
+            final bName = bData['name'] ?? '';
+            return aName.compareTo(bName);
+          });
+
+          if (products.isEmpty) {
+            return const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.inventory_2_outlined, size: 64, color: Colors.grey),
+                  SizedBox(height: 16),
+                  Text('No products found', style: TextStyle(color: Colors.grey)),
+                ],
               ),
-              if (_selectedProductPrice != null) ...[
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.blue[50],
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            );
+          }
+
+          return GridView.builder(
+            padding: const EdgeInsets.all(16),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              childAspectRatio: 0.65,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+            ),
+            itemCount: products.length,
+            itemBuilder: (context, index) {
+              final product = products[index].data() as Map<String, dynamic>;
+              final productId = products[index].id;
+              final customProductId = product['productId'] ?? '';
+              final name = product['name'] ?? 'Unknown';
+              final price = (product['price'] ?? 0).toDouble();
+              final imageUrl = product['imageUrl'] ?? '';
+              final category = product['category'] ?? '';
+
+              return Card(
+                clipBehavior: Clip.antiAlias,
+                child: InkWell(
+                  onTap: () {
+                    _showQuantityDialog(context, productId, customProductId, name, price);
+                  },
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Subtotal:', style: TextStyle(fontWeight: FontWeight.bold)),
-                      Text(
-                        '₹${((_selectedProductPrice ?? 0) * (double.tryParse(_quantityController.text) ?? 0)).toStringAsFixed(2)}',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.green,
-                          fontSize: 16,
+                      Container(
+                        height: 120,
+                        width: double.infinity,
+                        color: Colors.grey[300],
+                        child: imageUrl.isNotEmpty
+                            ? Image.network(
+                                imageUrl,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return const Center(
+                                    child: Icon(Icons.image, size: 40, color: Colors.grey),
+                                  );
+                                },
+                              )
+                            : const Center(
+                                child: Icon(Icons.image, size: 40, color: Colors.grey),
+                              ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(8),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              name,
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            if (customProductId.isNotEmpty) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                'ID: $customProductId',
+                                style: TextStyle(fontSize: 10, color: Colors.grey[700]),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                            if (category.isNotEmpty) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                category,
+                                style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                            const SizedBox(height: 6),
+                            Text(
+                              '₹${price.toStringAsFixed(2)}',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.green,
+                                fontSize: 15,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
                 ),
-              ],
-            ],
-          ),
-        ),
+              );
+            },
+          );
+        },
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
+    );
+  }
+
+  void _showQuantityDialog(BuildContext context, String productId, String customProductId, String productName, double price) {
+    final quantityController = TextEditingController(text: '1');
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(productName),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (customProductId.isNotEmpty)
+              Text(
+                'Product ID: $customProductId',
+                style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+              ),
+            const SizedBox(height: 8),
+            Text(
+              '₹${price.toStringAsFixed(2)} per unit',
+              style: const TextStyle(fontSize: 16, color: Colors.green, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: quantityController,
+              decoration: const InputDecoration(
+                labelText: 'Quantity',
+                prefixIcon: Icon(Icons.numbers),
+                border: OutlineInputBorder(),
+              ),
+              keyboardType: TextInputType.number,
+              autofocus: true,
+            ),
+          ],
         ),
-        ElevatedButton(
-          onPressed: () {
-            if (_formKey.currentState!.validate()) {
-              Navigator.pop(context, {
-                'productId': _selectedProductId,
-                'productName': _selectedProductName,
-                'price': _selectedProductPrice,
-                'quantity': double.parse(_quantityController.text),
-              });
-            }
-          },
-          child: const Text('Add'),
-        ),
-      ],
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final quantity = double.tryParse(quantityController.text);
+              if (quantity != null && quantity > 0) {
+                Navigator.pop(context);
+                Navigator.pop(context, {
+                  'productId': productId,
+                  'customProductId': customProductId,
+                  'productName': productName,
+                  'price': price,
+                  'quantity': quantity,
+                });
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Please enter valid quantity'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+            child: const Text('Add'),
+          ),
+        ],
+      ),
     );
   }
 }

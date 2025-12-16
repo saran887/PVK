@@ -89,11 +89,7 @@ class SalesHomeScreen extends ConsumerWidget {
                     icon: Icons.receipt_long,
                     title: 'My Orders',
                     color: Colors.orange,
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('My orders - Coming soon!')),
-                      );
-                    },
+                    onTap: () => context.push('/sales/my-orders'),
                   ),
                 ],
               ),

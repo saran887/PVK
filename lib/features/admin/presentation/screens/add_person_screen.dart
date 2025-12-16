@@ -7,7 +7,10 @@ import 'dart:math';
 import '../../../../shared/enums/app_enums.dart';
 
 class AddPersonScreen extends ConsumerStatefulWidget {
-  const AddPersonScreen({super.key});
+  final String? userId;
+  final bool isEdit;
+  
+  const AddPersonScreen({super.key, this.userId, this.isEdit = false});
 
   @override
   ConsumerState<AddPersonScreen> createState() => _AddPersonScreenState();
@@ -20,11 +23,20 @@ class _AddPersonScreenState extends ConsumerState<AddPersonScreen> {
   final _codeController = TextEditingController();
   UserRole _selectedRole = UserRole.sales;
   bool _isLoading = false;
+  String? _selectedLocationId;
+  String? _selectedLocationName;
+  List<Map<String, dynamic>> _locations = [];
 
   @override
   void initState() {
     super.initState();
-    _generateCode();
+    if (!widget.isEdit) {
+      _generateCode();
+    }
+    _loadLocations();
+    if (widget.isEdit && widget.userId != null) {
+      _loadUserData();
+    }
   }
 
   @override
@@ -41,55 +53,129 @@ class _AddPersonScreenState extends ConsumerState<AddPersonScreen> {
     _codeController.text = code;
   }
 
+  Future<void> _loadLocations() async {
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('locations')
+          .orderBy('name')
+          .get();
+      
+      setState(() {
+        _locations = snapshot.docs.map((doc) {
+          final data = doc.data();
+          return {
+            'id': doc.id,
+            'name': data['name'] ?? 'Unknown',
+          };
+        }).toList();
+      });
+    } catch (e) {
+      debugPrint('Error loading locations: $e');
+    }
+  }
+
+  Future<void> _loadUserData() async {
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(widget.userId)
+          .get();
+      
+      if (doc.exists) {
+        final data = doc.data() as Map<String, dynamic>;
+        setState(() {
+          _nameController.text = data['name'] ?? '';
+          _phoneController.text = data['phone'] ?? '';
+          _codeController.text = data['code']?.toString() ?? '';
+          _selectedRole = UserRole.fromString(data['role'] ?? 'SALES');
+          _selectedLocationId = data['locationId'] as String?;
+          _selectedLocationName = data['locationName'] as String?;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading user: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
   Future<void> _createUser() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
 
     try {
-      final random = Random();
-      final randomEmail = 'user${DateTime.now().millisecondsSinceEpoch}@pkv.local';
-      final randomPassword = 'pwd${random.nextInt(999999).toString().padLeft(6, '0')}';
+      if (widget.isEdit) {
+        // Update existing user
+        await FirebaseFirestore.instance.collection('users').doc(widget.userId).update({
+          'name': _nameController.text.trim(),
+          'phone': _phoneController.text.trim(),
+          'code': _codeController.text,
+          'role': _selectedRole.name.toUpperCase(),
+          'locationId': _selectedLocationId ?? '',
+          'locationName': _selectedLocationName ?? '',
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
 
-      final primaryApp = Firebase.app();
-      final secondaryApp = await Firebase.initializeApp(
-        name: 'temp-admin-${DateTime.now().microsecondsSinceEpoch}',
-        options: primaryApp.options,
-      );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('User updated successfully!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          Navigator.pop(context);
+        }
+      } else {
+        // Create new user
+        final random = Random();
+        final randomEmail = 'user${DateTime.now().millisecondsSinceEpoch}@pkv.local';
+        final randomPassword = 'pwd${random.nextInt(999999).toString().padLeft(6, '0')}';
 
-      UserCredential userCredential;
-      try {
-        final tempAuth = FirebaseAuth.instanceFor(app: secondaryApp);
-        userCredential = await tempAuth.createUserWithEmailAndPassword(
-          email: randomEmail,
-          password: randomPassword,
+        final primaryApp = Firebase.app();
+        final secondaryApp = await Firebase.initializeApp(
+          name: 'temp-admin-${DateTime.now().microsecondsSinceEpoch}',
+          options: primaryApp.options,
         );
-        await tempAuth.signOut();
-      } finally {
-        await secondaryApp.delete();
-      }
 
-      await FirebaseFirestore.instance.collection('users').doc(userCredential.user!.uid).set({
-        'name': _nameController.text.trim(),
-        'email': randomEmail,
-        'phone': _phoneController.text.trim(),
-        'code': _codeController.text,
-        'role': _selectedRole.name.toUpperCase(),
-        'password': randomPassword,
-        'isActive': true,
-        'assignedRoutes': [],
-        'createdAt': FieldValue.serverTimestamp(),
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+        UserCredential userCredential;
+        try {
+          final tempAuth = FirebaseAuth.instanceFor(app: secondaryApp);
+          userCredential = await tempAuth.createUserWithEmailAndPassword(
+            email: randomEmail,
+            password: randomPassword,
+          );
+          await tempAuth.signOut();
+        } finally {
+          await secondaryApp.delete();
+        }
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('User added! Login code: ${_codeController.text}'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        Navigator.pop(context);
+        await FirebaseFirestore.instance.collection('users').doc(userCredential.user!.uid).set({
+          'name': _nameController.text.trim(),
+          'email': randomEmail,
+          'phone': _phoneController.text.trim(),
+          'code': _codeController.text,
+          'role': _selectedRole.name.toUpperCase(),
+          'password': randomPassword,
+          'isActive': true,
+          'assignedRoutes': [],
+          'locationId': _selectedLocationId ?? '',
+          'locationName': _selectedLocationName ?? '',
+          'createdAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('User added! Login code: ${_codeController.text}'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          Navigator.pop(context);
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -108,7 +194,7 @@ class _AddPersonScreenState extends ConsumerState<AddPersonScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Add New Person'),
+        title: Text(widget.isEdit ? 'Edit Person' : 'Add New Person'),
       ),
       body: Form(
         key: _formKey,
@@ -181,9 +267,42 @@ class _AddPersonScreenState extends ConsumerState<AddPersonScreen> {
                 );
               }).toList(),
               onChanged: (value) {
-                setState(() => _selectedRole = value!);
+                setState(() {
+                  _selectedRole = value!;
+                });
               },
             ),
+            // Show location dropdown for all roles (sales, billing, delivery)
+            const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                value: _selectedLocationId,
+                decoration: const InputDecoration(
+                  labelText: 'Assign Location',
+                  prefixIcon: Icon(Icons.location_on),
+                  hintText: 'Select a location',
+                ),
+                items: _locations.map((location) {
+                  return DropdownMenuItem<String>(
+                    value: location['id'] as String,
+                    child: Text(location['name'] as String),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() {
+                    _selectedLocationId = value;
+                    _selectedLocationName = _locations.firstWhere(
+                      (loc) => loc['id'] == value,
+                      orElse: () => {'name': ''},
+                    )['name'] as String?;
+                  });
+                },
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please select a location';
+                  }
+                  return null;
+                },
+              ),
             const SizedBox(height: 32),
             ElevatedButton(
               onPressed: _isLoading ? null : _createUser,
@@ -193,7 +312,7 @@ class _AddPersonScreenState extends ConsumerState<AddPersonScreen> {
                       width: 20,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text('Add Person'),
+                  : Text(widget.isEdit ? 'Save Changes' : 'Add Person'),
             ),
           ],
         ),

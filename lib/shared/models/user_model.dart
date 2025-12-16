@@ -9,6 +9,8 @@ class UserModel {
   final String phone;
   final bool isActive;
   final List<String> assignedRoutes;
+  final String? locationId;
+  final String? locationName;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -20,6 +22,8 @@ class UserModel {
     required this.phone,
     this.isActive = true,
     this.assignedRoutes = const [],
+    this.locationId,
+    this.locationName,
     this.createdAt,
     this.updatedAt,
   });
@@ -33,6 +37,8 @@ class UserModel {
       phone: data['phone'] ?? '',
       isActive: data['isActive'] ?? true,
       assignedRoutes: List<String>.from(data['assignedRoutes'] ?? []),
+      locationId: data['locationId'] as String?,
+      locationName: data['locationName'] as String?,
       createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate(),
     );
@@ -47,6 +53,8 @@ class UserModel {
       'phone': phone,
       'isActive': isActive,
       'assignedRoutes': assignedRoutes,
+      'locationId': locationId ?? '',
+      'locationName': locationName ?? '',
       'createdAt': createdAt != null ? Timestamp.fromDate(createdAt!) : FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     };

@@ -52,7 +52,7 @@ class ManageUsersScreen extends ConsumerWidget {
             itemCount: users.length,
             itemBuilder: (context, index) {
               final user = users[index].data() as Map<String, dynamic>;
-              final userId = users[index].id;
+              final userId = users[index].id.trim();
               final name = user['name'] ?? 'Unknown';
               final email = user['email'] ?? '';
               final role = user['role'] ?? 'USER';
@@ -161,6 +161,8 @@ class ManageUsersScreen extends ConsumerWidget {
                           'isActive': !isActive,
                           'updatedAt': FieldValue.serverTimestamp(),
                         });
+                      } else if (value == 'edit') {
+                        context.push('/admin/edit-person/$userId');
                       } else if (value == 'delete') {
                         final confirm = await showDialog<bool>(
                           context: context,

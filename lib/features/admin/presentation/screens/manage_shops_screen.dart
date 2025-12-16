@@ -156,6 +156,8 @@ class ManageShopsScreen extends ConsumerWidget {
                             ),
                           );
                         }
+                      } else if (value == 'edit') {
+                        context.push('/admin/edit-shop/$shopId');
                       } else if (value == 'delete') {
                         final confirm = await showDialog<bool>(
                           context: context,

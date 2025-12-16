@@ -10,6 +10,7 @@ import 'core/theme/app_theme.dart';
 void main() async {
     // DEBUG: Seed Firestore with test user code 2000
     Future<void> addTestUser() async {
+      
       await FirebaseFirestore.instance.collection('users').add({
         'code': '2000',
         'name': 'Test User',

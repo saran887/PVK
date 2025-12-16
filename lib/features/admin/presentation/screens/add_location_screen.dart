@@ -3,7 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AddLocationScreen extends ConsumerStatefulWidget {
-  const AddLocationScreen({super.key});
+  final String? locationId;
+  final bool isEdit;
+  
+  const AddLocationScreen({super.key, this.locationId, this.isEdit = false});
 
   @override
   ConsumerState<AddLocationScreen> createState() => _AddLocationScreenState();
@@ -17,11 +20,43 @@ class _AddLocationScreenState extends ConsumerState<AddLocationScreen> {
   bool _isLoading = false;
 
   @override
+  void initState() {
+    super.initState();
+    if (widget.isEdit && widget.locationId != null) {
+      _loadLocationData();
+    }
+  }
+
+  @override
   void dispose() {
     _nameController.dispose();
     _areaController.dispose();
     _descriptionController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadLocationData() async {
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('locations')
+          .doc(widget.locationId)
+          .get();
+      
+      if (doc.exists) {
+        final data = doc.data() as Map<String, dynamic>;
+        setState(() {
+          _nameController.text = data['name'] ?? '';
+          _areaController.text = data['area'] ?? '';
+          _descriptionController.text = data['description'] ?? '';
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading location: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
   Future<void> _createLocation() async {
@@ -30,21 +65,30 @@ class _AddLocationScreenState extends ConsumerState<AddLocationScreen> {
     setState(() => _isLoading = true);
 
     try {
-      await FirebaseFirestore.instance.collection('locations').add({
+      final locationData = {
         'name': _nameController.text.trim(),
         'area': _areaController.text.trim(),
         'description': _descriptionController.text.trim(),
-        'isActive': true,
-        'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
-      });
+      };
+
+      if (widget.isEdit) {
+        await FirebaseFirestore.instance
+            .collection('locations')
+            .doc(widget.locationId)
+            .update(locationData);
+      } else {
+        locationData['isActive'] = true;
+        locationData['createdAt'] = FieldValue.serverTimestamp();
+        await FirebaseFirestore.instance.collection('locations').add(locationData);
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Location added successfully!'),
+          SnackBar(
+            content: Text(widget.isEdit ? 'Location updated successfully!' : 'Location added successfully!'),
             backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 2),
           ),
         );
         Navigator.pop(context);
@@ -66,7 +110,7 @@ class _AddLocationScreenState extends ConsumerState<AddLocationScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Add New Location'),
+        title: Text(widget.isEdit ? 'Edit Location' : 'Add New Location'),
       ),
       body: Form(
         key: _formKey,

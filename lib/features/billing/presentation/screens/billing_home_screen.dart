@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../auth/providers/auth_provider.dart';
 
 class BillingHomeScreen extends ConsumerWidget {
@@ -57,16 +58,14 @@ class BillingHomeScreen extends ConsumerWidget {
                 crossAxisCount: 2,
                 mainAxisSpacing: 16,
                 crossAxisSpacing: 16,
-                childAspectRatio: 1.2,
+                childAspectRatio: 1.5,
                 children: [
                   _QuickActionCard(
                     icon: Icons.pending_actions,
                     title: 'Pending Orders',
                     color: Colors.orange,
                     onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Pending orders - Coming soon!')),
-                      );
+                      context.push('/billing/pending-orders');
                     },
                   ),
                   _QuickActionCard(
@@ -74,9 +73,7 @@ class BillingHomeScreen extends ConsumerWidget {
                     title: 'Adjust Rates',
                     color: Colors.blue,
                     onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Adjust rates - Coming soon!')),
-                      );
+                      context.push('/billing/adjust-rates');
                     },
                   ),
                   _QuickActionCard(
@@ -84,9 +81,7 @@ class BillingHomeScreen extends ConsumerWidget {
                     title: 'Processed Orders',
                     color: Colors.green,
                     onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Processed orders - Coming soon!')),
-                      );
+                      context.push('/billing/processed-orders');
                     },
                   ),
                 ],

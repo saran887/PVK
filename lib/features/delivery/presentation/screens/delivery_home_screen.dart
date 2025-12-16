@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../auth/providers/auth_provider.dart';
 
 class DeliveryHomeScreen extends ConsumerWidget {
@@ -57,17 +58,13 @@ class DeliveryHomeScreen extends ConsumerWidget {
                 crossAxisCount: 2,
                 mainAxisSpacing: 16,
                 crossAxisSpacing: 16,
-                childAspectRatio: 1.2,
+                childAspectRatio: 1,
                 children: [
                   _QuickActionCard(
                     icon: Icons.inventory,
                     title: 'Ready to Deliver',
                     color: Colors.blue,
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Ready to deliver - Coming soon!')),
-                      );
-                    },
+                    onTap: () => context.push('/delivery/ready-to-deliver'),
                   ),
                   _QuickActionCard(
                     icon: Icons.payment,
@@ -83,11 +80,7 @@ class DeliveryHomeScreen extends ConsumerWidget {
                     icon: Icons.history,
                     title: 'Delivery History',
                     color: Colors.orange,
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Delivery history - Coming soon!')),
-                      );
-                    },
+                    onTap: () => context.push('/delivery/history'),
                   ),
                 ],
               ),

@@ -112,7 +112,7 @@ class ManageLocationsScreen extends ConsumerWidget {
                           children: [
                             Icon(Icons.edit, size: 20),
                             SizedBox(width: 8),
-                            Text('Edit (Coming soon)'),
+                            Text('Edit'),
                           ],
                         ),
                       ),
@@ -141,6 +141,8 @@ class ManageLocationsScreen extends ConsumerWidget {
                             ),
                           );
                         }
+                      } else if (value == 'edit') {
+                        context.push('/admin/edit-location/$locationId');
                       } else if (value == 'delete') {
                         final confirm = await showDialog<bool>(
                           context: context,

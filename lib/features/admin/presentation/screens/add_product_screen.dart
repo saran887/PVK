@@ -7,7 +7,10 @@ import 'dart:io';
 import 'dart:convert';
 
 class AddProductScreen extends ConsumerStatefulWidget {
-  const AddProductScreen({super.key});
+  final String? productId;
+  final bool isEdit;
+  
+  const AddProductScreen({super.key, this.productId, this.isEdit = false});
 
   @override
   ConsumerState<AddProductScreen> createState() => _AddProductScreenState();
@@ -36,6 +39,9 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
   void initState() {
     super.initState();
     _loadCategories();
+    if (widget.isEdit && widget.productId != null) {
+      _loadProductData();
+    }
   }
 
   @override
@@ -56,6 +62,38 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
     setState(() {
       _categories = snapshot.docs.map((doc) => doc.data()['name'] as String).toList();
     });
+  }
+
+  Future<void> _loadProductData() async {
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('products')
+          .doc(widget.productId)
+          .get();
+      
+      if (doc.exists) {
+        final data = doc.data() as Map<String, dynamic>;
+        setState(() {
+          _productIdController.text = widget.productId ?? '';
+          _nameController.text = data['name'] ?? '';
+          _weightController.text = (data['weight'] ?? 0).toString();
+          _quantityController.text = (data['quantity'] ?? 0).toString();
+          _priceController.text = (data['price'] ?? 0).toString();
+          _imageUrlController.text = data['imageUrl'] ?? '';
+          _descriptionController.text = data['description'] ?? '';
+          _selectedUnit = data['weightUnit'] ?? 'kg';
+          _selectedQuantityUnit = data['quantityUnit'] ?? 'pcs';
+          _selectedCategory = data['category'];
+          _uploadedImageUrl = data['imageUrl'];
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading product: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
 
@@ -239,10 +277,10 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
 
     try {
       String imageUrl = _uploadedImageUrl ?? _imageUrlController.text.trim();
-      final productId = _productIdController.text.trim();
+      final productId = widget.isEdit ? widget.productId! : _productIdController.text.trim();
 
-      // Check if custom productId already exists
-      if (productId.isNotEmpty) {
+      // Check if custom productId already exists (only for new products)
+      if (!widget.isEdit && productId.isNotEmpty) {
         final existingDoc = await FirebaseFirestore.instance
             .collection('products')
             .doc(productId)
@@ -323,25 +361,34 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
         'price': double.tryParse(_priceController.text) ?? 0,
         'imageUrl': imageUrl,
         'isActive': true,
-        'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
       };
 
-      if (productId.isNotEmpty) {
+      if (widget.isEdit) {
+        // Update existing product
         await FirebaseFirestore.instance
             .collection('products')
             .doc(productId)
-            .set(productData);
+            .update(productData);
       } else {
-        await FirebaseFirestore.instance
-            .collection('products')
-            .add(productData);
+        // Create new product
+        productData['createdAt'] = FieldValue.serverTimestamp();
+        if (productId.isNotEmpty) {
+          await FirebaseFirestore.instance
+              .collection('products')
+              .doc(productId)
+              .set(productData);
+        } else {
+          await FirebaseFirestore.instance
+              .collection('products')
+              .add(productData);
+        }
       }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Product added successfully!'),
+          SnackBar(
+            content: Text(widget.isEdit ? 'Product updated successfully!' : 'Product added successfully!'),
             backgroundColor: Colors.green,
           ),
         );
@@ -364,7 +411,7 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Add New Product'),
+        title: Text(widget.isEdit ? 'Edit Product' : 'Add New Product'),
       ),
       body: Form(
         key: _formKey,

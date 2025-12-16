@@ -16,23 +16,23 @@ service cloud.firestore {
     }
     
     function isOwner() {
-      return isAuthenticated() && userExists() && getUserData().role == 'OWNER';
+      return isAuthenticated() && userExists() && (getUserData().role == 'OWNER' || getUserData().role == 'owner');
     }
     
     function isAdmin() {
-      return isAuthenticated() && userExists() && getUserData().role == 'ADMIN';
+      return isAuthenticated() && userExists() && (getUserData().role == 'ADMIN' || getUserData().role == 'admin');
     }
     
     function isSales() {
-      return isAuthenticated() && userExists() && getUserData().role == 'SALES';
+      return isAuthenticated() && userExists() && (getUserData().role == 'SALES' || getUserData().role == 'sales');
     }
     
     function isBilling() {
-      return isAuthenticated() && userExists() && getUserData().role == 'BILLING';
+      return isAuthenticated() && userExists() && (getUserData().role == 'BILLING' || getUserData().role == 'billing');
     }
     
     function isDelivery() {
-      return isAuthenticated() && userExists() && getUserData().role == 'DELIVERY';
+      return isAuthenticated() && userExists() && (getUserData().role == 'DELIVERY' || getUserData().role == 'delivery');
     }
     
     function hasRoute(routeId) {
@@ -81,21 +81,18 @@ service cloud.firestore {
     match /orders/{orderId} {
       allow read: if isAuthenticated();
       
-      allow create: if isSales() && 
-        request.resource.data.createdByUserId == request.auth.uid &&
-        request.resource.data.status == 'PENDING';
+      allow create: if isAuthenticated() && 
+        (isSales() || isAdmin() || isOwner());
       
       allow update: if (
         // Sales can edit their own pending orders
-        (isSales() && 
-         resource.data.createdByUserId == request.auth.uid && 
-         resource.data.status == 'PENDING') ||
+        (isSales() && resource.data.status == 'pending') ||
         // Billing can update status and billing info
         (isBilling() && 
-         request.resource.data.status in ['BILLED', 'DISPATCHED']) ||
+         request.resource.data.status in ['billed', 'dispatched']) ||
         // Delivery can mark as delivered
         (isDelivery() && 
-         request.resource.data.status == 'DELIVERED') ||
+         request.resource.data.status == 'delivered') ||
         // Owner and Admin can do anything
         isOwner() || isAdmin()
       );

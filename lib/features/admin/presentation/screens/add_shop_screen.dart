@@ -3,7 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AddShopScreen extends ConsumerStatefulWidget {
-  const AddShopScreen({super.key});
+  final String? shopId;
+  final bool isEdit;
+  
+  const AddShopScreen({super.key, this.shopId, this.isEdit = false});
 
   @override
   ConsumerState<AddShopScreen> createState() => _AddShopScreenState();
@@ -25,6 +28,9 @@ class _AddShopScreenState extends ConsumerState<AddShopScreen> {
   void initState() {
     super.initState();
     _loadLocations();
+    if (widget.isEdit && widget.shopId != null) {
+      _loadShopData();
+    }
   }
 
   @override
@@ -50,13 +56,41 @@ class _AddShopScreenState extends ConsumerState<AddShopScreen> {
     });
   }
 
+  Future<void> _loadShopData() async {
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('shops')
+          .doc(widget.shopId)
+          .get();
+      
+      if (doc.exists) {
+        final data = doc.data() as Map<String, dynamic>;
+        setState(() {
+          _nameController.text = data['name'] ?? '';
+          _ownerNameController.text = data['ownerName'] ?? '';
+          _addressController.text = data['address'] ?? '';
+          _phoneController.text = data['phone'] ?? '';
+          _gstController.text = data['gstNumber'] ?? '';
+          _selectedLocationId = data['locationId'] as String?;
+          _selectedLocationName = data['locationName'] as String?;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading shop: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
   Future<void> _createShop() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
 
     try {
-      await FirebaseFirestore.instance.collection('shops').add({
+      final shopData = {
         'name': _nameController.text.trim(),
         'ownerName': _ownerNameController.text.trim(),
         'locationId': _selectedLocationId,
@@ -64,15 +98,24 @@ class _AddShopScreenState extends ConsumerState<AddShopScreen> {
         'address': _addressController.text.trim(),
         'phone': _phoneController.text.trim(),
         'gstNumber': _gstController.text.trim(),
-        'isActive': true,
-        'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
-      });
+      };
+
+      if (widget.isEdit) {
+        await FirebaseFirestore.instance
+            .collection('shops')
+            .doc(widget.shopId)
+            .update(shopData);
+      } else {
+        shopData['isActive'] = true;
+        shopData['createdAt'] = FieldValue.serverTimestamp();
+        await FirebaseFirestore.instance.collection('shops').add(shopData);
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Shop added successfully!'),
+          SnackBar(
+            content: Text(widget.isEdit ? 'Shop updated successfully!' : 'Shop added successfully!'),
             backgroundColor: Colors.green,
           ),
         );
@@ -95,7 +138,7 @@ class _AddShopScreenState extends ConsumerState<AddShopScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Add New Shop'),
+        title: Text(widget.isEdit ? 'Edit Shop' : 'Add New Shop'),
       ),
       body: Form(
         key: _formKey,

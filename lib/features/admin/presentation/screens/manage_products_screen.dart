@@ -68,9 +68,9 @@ class ManageProductsScreen extends ConsumerWidget {
               final price = product['price'] ?? 0;
               final imageUrl = product['imageUrl'] ?? '';
               final category = product['category'] ?? '';
-              final weight = product['weight'] ?? 0;
+              final weight = product['weight'] ?? '';
               final weightUnit = product['weightUnit'] ?? '';
-              final quantity = product['quantity'] ?? 0;
+              final quantity = product['quantity'] ?? '';
               final quantityUnit = product['quantityUnit'] ?? '';
               
               // Debug print
@@ -139,7 +139,7 @@ class ManageProductsScreen extends ConsumerWidget {
                                 ),
                               ],
                             ),
-                          if (weight > 0 && weightUnit.isNotEmpty)
+                          if (weight.isNotEmpty && weightUnit.isNotEmpty)
                             Row(
                               children: [
                                 Icon(Icons.monitor_weight, size: 12, color: Colors.grey[600]),
@@ -150,7 +150,7 @@ class ManageProductsScreen extends ConsumerWidget {
                                 ),
                               ],
                             ),
-                          if (quantity > 0 && quantityUnit.isNotEmpty)
+                          if (quantity.isNotEmpty && quantityUnit.isNotEmpty)
                             Row(
                               children: [
                                 Icon(Icons.inventory_2, size: 12, color: Colors.grey[600]),
@@ -232,9 +232,7 @@ class ManageProductsScreen extends ConsumerWidget {
                                       }
                                     }
                                   } else if (value == 'edit') {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('Edit product - Coming soon!')),
-                                    );
+                                    context.push('/admin/edit-product/$productId');
                                   }
                                 },
                               ),

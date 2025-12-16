@@ -16,8 +16,14 @@ import '../../features/admin/presentation/screens/manage_locations_screen.dart';
 import '../../features/sales/presentation/screens/sales_home_screen.dart';
 import '../../features/sales/presentation/screens/shop_list_screen.dart';
 import '../../features/sales/presentation/screens/create_order_screen.dart';
+import '../../features/sales/presentation/screens/my_orders_screen.dart';
 import '../../features/billing/presentation/screens/billing_home_screen.dart';
+import '../../features/billing/presentation/screens/pending_orders_screen.dart';
+import '../../features/billing/presentation/screens/processed_orders_screen.dart';
+import '../../features/billing/presentation/screens/adjust_rates_screen.dart';
 import '../../features/delivery/presentation/screens/delivery_home_screen.dart';
+import '../../features/delivery/presentation/screens/ready_to_deliver_screen.dart';
+import '../../features/delivery/presentation/screens/delivery_history_screen.dart';
 import '../../features/owner/presentation/screens/owner_dashboard_screen.dart';
 
 class GoRouterNotifier extends ChangeNotifier {
@@ -95,12 +101,26 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const AddPersonScreen(),
           ),
           GoRoute(
+            path: 'edit-person/:userId',
+            builder: (context, state) {
+              final userId = state.pathParameters['userId']!;
+              return AddPersonScreen(userId: userId, isEdit: true);
+            },
+          ),
+          GoRoute(
             path: 'manage-users',
             builder: (context, state) => const ManageUsersScreen(),
           ),
           GoRoute(
             path: 'add-shop',
             builder: (context, state) => const AddShopScreen(),
+          ),
+          GoRoute(
+            path: 'edit-shop/:shopId',
+            builder: (context, state) {
+              final shopId = state.pathParameters['shopId']!;
+              return AddShopScreen(shopId: shopId, isEdit: true);
+            },
           ),
           GoRoute(
             path: 'manage-shops',
@@ -111,12 +131,26 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const AddProductScreen(),
           ),
           GoRoute(
+            path: 'edit-product/:productId',
+            builder: (context, state) {
+              final productId = state.pathParameters['productId']!;
+              return AddProductScreen(productId: productId, isEdit: true);
+            },
+          ),
+          GoRoute(
             path: 'manage-products',
             builder: (context, state) => const ManageProductsScreen(),
           ),
           GoRoute(
             path: 'add-location',
             builder: (context, state) => const AddLocationScreen(),
+          ),
+          GoRoute(
+            path: 'edit-location/:locationId',
+            builder: (context, state) {
+              final locationId = state.pathParameters['locationId']!;
+              return AddLocationScreen(locationId: locationId, isEdit: true);
+            },
           ),
           GoRoute(
             path: 'manage-locations',
@@ -136,15 +170,43 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: 'create-order',
             builder: (context, state) => const CreateOrderScreen(),
           ),
+          GoRoute(
+            path: 'my-orders',
+            builder: (context, state) => const MyOrdersScreen(),
+          ),
         ],
       ),
       GoRoute(
         path: '/billing',
         builder: (context, state) => const BillingHomeScreen(),
+        routes: [
+          GoRoute(
+            path: 'pending-orders',
+            builder: (context, state) => const PendingOrdersScreen(),
+          ),
+          GoRoute(
+            path: 'processed-orders',
+            builder: (context, state) => const ProcessedOrdersScreen(),
+          ),
+          GoRoute(
+            path: 'adjust-rates',
+            builder: (context, state) => const AdjustRatesScreen(),
+          ),
+        ],
       ),
       GoRoute(
         path: '/delivery',
         builder: (context, state) => const DeliveryHomeScreen(),
+        routes: [
+          GoRoute(
+            path: 'ready-to-deliver',
+            builder: (context, state) => const ReadyToDeliverScreen(),
+          ),
+          GoRoute(
+            path: 'history',
+            builder: (context, state) => const DeliveryHistoryScreen(),
+          ),
+        ],
       ),
     ],
   );

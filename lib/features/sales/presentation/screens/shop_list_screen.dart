@@ -1,21 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../../auth/providers/auth_provider.dart';
 
 class ShopListScreen extends ConsumerWidget {
   const ShopListScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final currentUser = ref.watch(currentUserProvider).asData?.value;
+    final userLocationId = currentUser?.locationId ?? '';
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Shops'),
       ),
       body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('shops')
-            .orderBy('name')
-            .snapshots(),
+        stream: userLocationId.isNotEmpty
+            ? FirebaseFirestore.instance
+                .collection('shops')
+                .where('locationId', isEqualTo: userLocationId)
+                .orderBy('name')
+                .snapshots()
+            : FirebaseFirestore.instance
+                .collection('shops')
+                .orderBy('name')
+                .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
             return Center(child: Text('Error: ${snapshot.error}'));

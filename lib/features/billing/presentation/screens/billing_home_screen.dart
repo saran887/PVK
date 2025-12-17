@@ -84,15 +84,6 @@ class BillingHomeScreen extends ConsumerWidget {
                       context.push('/billing/processed-orders');
                     },
                   ),
-                  _QuickActionCard(
-                    icon: Icons.receipt_long,
-                    title: 'Generate Bill',
-                    color: Colors.purple,
-                    onTap: () {
-                      // Navigate to processed orders where bills can be generated
-                      context.push('/billing/processed-orders');
-                    },
-                  ),
                 ],
               ),
             ),

@@ -5,11 +5,18 @@ import 'package:intl/intl.dart';
 import '../../../auth/providers/auth_provider.dart';
 import '../utils/bill_generator.dart';
 
-class ProcessedOrdersScreen extends ConsumerWidget {
+class ProcessedOrdersScreen extends ConsumerStatefulWidget {
   const ProcessedOrdersScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ProcessedOrdersScreen> createState() => _ProcessedOrdersScreenState();
+}
+
+class _ProcessedOrdersScreenState extends ConsumerState<ProcessedOrdersScreen> {
+  String? selectedLocationId;
+
+  @override
+  Widget build(BuildContext context) {
     final currentUser = ref.watch(currentUserProvider).asData?.value;
     final userLocationId = currentUser?.locationId ?? '';
 
@@ -17,151 +24,204 @@ class ProcessedOrdersScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Processed Orders'),
       ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('orders')
-            .where('status', isEqualTo: 'billed')
-            .orderBy('billedAt', descending: true)
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          }
-
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          var orders = snapshot.data!.docs;
-
-          // Filter by location if user has a location assigned
-          if (userLocationId.isNotEmpty) {
-            orders = orders.where((order) {
-              final data = order.data() as Map<String, dynamic>;
-              final shopLocationId = data['shopLocationId'] as String?;
-              return shopLocationId == null || shopLocationId.isEmpty || shopLocationId == userLocationId;
-            }).toList();
-          }
-
-          if (orders.isEmpty) {
-            return const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.check_circle_outline, size: 64, color: Colors.grey),
-                  SizedBox(height: 16),
-                  Text('No processed orders', style: TextStyle(color: Colors.grey, fontSize: 18)),
-                ],
-              ),
-            );
-          }
-
-          return ListView.builder(
+      body: Column(
+        children: [
+          // Location Selector
+          Padding(
             padding: const EdgeInsets.all(16),
-            itemCount: orders.length,
-            itemBuilder: (context, index) {
-              final order = orders[index].data() as Map<String, dynamic>;
-              final orderId = orders[index].id;
-              final shopName = order['shopName'] ?? 'Unknown Shop';
-              final totalAmount = (order['totalAmount'] ?? 0).toDouble();
-              final totalItems = order['totalItems'] ?? 0;
-              final billedAt = (order['billedAt'] as Timestamp?)?.toDate();
-              final createdAt = (order['createdAt'] as Timestamp?)?.toDate();
+            child: StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance.collection('locations').snapshots(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) {
+                  return const SizedBox.shrink();
+                }
+                final locations = snapshot.data!.docs.map((doc) {
+                  return {
+                    'id': doc.id,
+                    'name': doc['name'] ?? 'Unknown',
+                  };
+                }).toList();
 
-              return Card(
-                margin: const EdgeInsets.only(bottom: 12),
-                child: InkWell(
-                  onTap: () {
-                    _showOrderDetails(context, orderId, order);
+                return DropdownButtonFormField<String>(
+                  value: selectedLocationId,
+                  decoration: const InputDecoration(
+                    labelText: 'Select Location',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: [
+                    const DropdownMenuItem<String>(
+                      value: null,
+                      child: Text('All Locations'),
+                    ),
+                    ...locations.map((location) {
+                      return DropdownMenuItem<String>(
+                        value: location['id'],
+                        child: Text(location['name']!),
+                      );
+                    }),
+                  ],
+                  onChanged: (value) {
+                    setState(() {
+                      selectedLocationId = value;
+                    });
                   },
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
+                );
+              },
+            ),
+          ),
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('orders')
+                  .where('status', isEqualTo: 'billed')
+                  .orderBy('billedAt', descending: true)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                }
+
+                if (!snapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                var orders = snapshot.data!.docs;
+
+                // Filter by selected location or user location
+                orders = orders.where((order) {
+                  final data = order.data() as Map<String, dynamic>;
+                  final shopLocationId = data['shopLocationId'] as String?;
+                  if (selectedLocationId != null) {
+                    return shopLocationId == selectedLocationId;
+                  } else if (userLocationId.isNotEmpty) {
+                    return shopLocationId == null || shopLocationId.isEmpty || shopLocationId == userLocationId;
+                  }
+                  
+                  return true;
+                }).toList();
+
+                if (orders.isEmpty) {
+                  return const Center(
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                        Icon(Icons.check_circle_outline, size: 64, color: Colors.grey),
+                        SizedBox(height: 16),
+                        Text('No processed orders', style: TextStyle(color: Colors.grey, fontSize: 18)),
+                      ],
+                    ),
+                  );
+                }
+
+                return ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: orders.length,
+                  itemBuilder: (context, index) {
+                    final order = orders[index].data() as Map<String, dynamic>;
+                    final orderId = orders[index].id;
+                    final shopName = order['shopName'] ?? 'Unknown Shop';
+                    final totalAmount = (order['totalAmount'] ?? 0).toDouble();
+                    final totalItems = order['totalItems'] ?? 0;
+                    final billedAt = (order['billedAt'] as Timestamp?)?.toDate();
+                    final createdAt = (order['createdAt'] as Timestamp?)?.toDate();
+
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      child: InkWell(
+                        onTap: () {
+                          _showOrderDetails(context, orderId, order);
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Text(
-                                    shopName,
-                                    style: const TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          shopName,
+                                          style: const TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          'Order ID: ${orderId.substring(0, 8)}',
+                                          style: TextStyle(
+                                            color: Colors.grey[600],
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'Order ID: ${orderId.substring(0, 8)}',
-                                    style: TextStyle(
-                                      color: Colors.grey[600],
-                                      fontSize: 12,
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      color: Colors.green,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: const Text(
+                                      'BILLED',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
                                   ),
                                 ],
                               ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: Colors.green,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Text(
-                                'BILLED',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const Divider(height: 24),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Items: $totalItems',
-                                  style: TextStyle(color: Colors.grey[600]),
-                                ),
-                                if (billedAt != null)
-                                  Text(
-                                    'Billed: ${DateFormat('dd MMM yyyy').format(billedAt)}',
-                                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                              const Divider(height: 24),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Items: $totalItems',
+                                        style: TextStyle(color: Colors.grey[600]),
+                                      ),
+                                      if (billedAt != null)
+                                        Text(
+                                          'Billed: ${DateFormat('dd MMM yyyy').format(billedAt)}',
+                                          style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                                        ),
+                                      if (createdAt != null)
+                                        Text(
+                                          'Ordered: ${DateFormat('dd MMM yyyy').format(createdAt)}',
+                                          style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                                        ),
+                                    ],
                                   ),
-                                if (createdAt != null)
                                   Text(
-                                    'Ordered: ${DateFormat('dd MMM yyyy').format(createdAt)}',
-                                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                                    '₹${totalAmount.toStringAsFixed(2)}',
+                                    style: const TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.green,
+                                    ),
                                   ),
-                              ],
-                            ),
-                            Text(
-                              '₹${totalAmount.toStringAsFixed(2)}',
-                              style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.green,
+                                ],
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            },
-          );
-        },
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

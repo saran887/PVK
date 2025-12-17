@@ -13,6 +13,7 @@ import '../../features/admin/presentation/screens/add_product_screen.dart';
 import '../../features/admin/presentation/screens/manage_products_screen.dart';
 import '../../features/admin/presentation/screens/add_location_screen.dart';
 import '../../features/admin/presentation/screens/manage_locations_screen.dart';
+import '../../features/admin/presentation/screens/reports_screen.dart';
 import '../../features/sales/presentation/screens/sales_home_screen.dart';
 import '../../features/sales/presentation/screens/shop_list_screen.dart';
 import '../../features/sales/presentation/screens/create_order_screen.dart';
@@ -155,6 +156,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'manage-locations',
             builder: (context, state) => const ManageLocationsScreen(),
+          ),
+          GoRoute(
+            path: 'reports',
+            builder: (context, state) => const ReportsScreen(),
           ),
         ],
       ),

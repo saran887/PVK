@@ -40,6 +40,79 @@ class AdminDashboardScreen extends ConsumerWidget {
           title: const Text('Admin Dashboard'),
           automaticallyImplyLeading: false,
           actions: [
+            PopupMenuButton<String>(
+              onSelected: (value) {
+                switch (value) {
+                  case 'add_person':
+                    context.push('/admin/add-person');
+                    break;
+                  case 'add_shop':
+                    context.push('/admin/add-shop');
+                    break;
+                  case 'add_product':
+                    context.push('/admin/add-product');
+                    break;
+                  case 'add_location':
+                    context.push('/admin/add-location');
+                    break;
+                  case 'manage_locations':
+                    context.push('/admin/manage-locations');
+                    break;
+                }
+              },
+              itemBuilder: (context) => [
+                const PopupMenuItem(
+                  value: 'add_person',
+                  child: Row(
+                    children: [
+                      Icon(Icons.person_add, size: 20),
+                      SizedBox(width: 8),
+                      Text('Add Person'),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'add_shop',
+                  child: Row(
+                    children: [
+                      Icon(Icons.add_business, size: 20),
+                      SizedBox(width: 8),
+                      Text('Add Shop'),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'add_product',
+                  child: Row(
+                    children: [
+                      Icon(Icons.add_shopping_cart, size: 20),
+                      SizedBox(width: 8),
+                      Text('Add Product'),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'add_location',
+                  child: Row(
+                    children: [
+                      Icon(Icons.add_location, size: 20),
+                      SizedBox(width: 8),
+                      Text('Add Location'),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'manage_locations',
+                  child: Row(
+                    children: [
+                      Icon(Icons.location_city, size: 25),
+                      SizedBox(width: 8),
+                      Text('Manage Locations'),
+                    ],
+                  ),
+                ),
+              ],
+            ),
             IconButton(
               icon: const Icon(Icons.logout),
               onPressed: () async {
@@ -90,12 +163,12 @@ class AdminDashboardScreen extends ConsumerWidget {
                     ),
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 16),
                 Text(
                   'Management',
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
                 GridView.count(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
@@ -105,10 +178,10 @@ class AdminDashboardScreen extends ConsumerWidget {
                   childAspectRatio: 1,
                   children: [
                     _QuickActionCard(
-                      icon: Icons.person_add,
-                      title: 'Add Person',
-                      color: Colors.blue,
-                      onTap: () => context.push('/admin/add-person'),
+                      icon: Icons.analytics,
+                      title: 'Reports',
+                      color: Colors.deepOrange,
+                      onTap: () => context.push('/admin/reports'),
                     ),
                     _QuickActionCard(
                       icon: Icons.people,
@@ -117,71 +190,16 @@ class AdminDashboardScreen extends ConsumerWidget {
                       onTap: () => context.push('/admin/manage-users'),
                     ),
                     _QuickActionCard(
-                      icon: Icons.add_business,
-                      title: 'Add Shop',
-                      color: Colors.orange,
-                      onTap: () => context.push('/admin/add-shop'),
-                    ),
-                    _QuickActionCard(
                       icon: Icons.store,
                       title: 'Manage Shops',
                       color: Colors.purple,
                       onTap: () => context.push('/admin/manage-shops'),
                     ),
                     _QuickActionCard(
-                      icon: Icons.add_shopping_cart,
-                      title: 'Add Product',
-                      color: Colors.teal,
-                      onTap: () => context.push('/admin/add-product'),
-                    ),
-                    _QuickActionCard(
                       icon: Icons.inventory,
                       title: 'Manage Products',
                       color: Colors.indigo,
                       onTap: () => context.push('/admin/manage-products'),
-                    ),
-                    _QuickActionCard(
-                      icon: Icons.add_location,
-                      title: 'Add Location',
-                      color: Colors.red,
-                      onTap: () => context.push('/admin/add-location'),
-                    ),
-                    _QuickActionCard(
-                      icon: Icons.location_city,
-                      title: 'Manage Locations',
-                      color: Colors.pink,
-                      onTap: () => context.push('/admin/manage-locations'),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                GridView.count(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 16,
-                  crossAxisSpacing: 16,
-                  childAspectRatio: 1.35,
-                  children: [
-                    _QuickActionCard(
-                      icon: Icons.analytics,
-                      title: 'Reports',
-                      color: Colors.deepOrange,
-                      onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Reports screen - Coming soon!')),
-                        );
-                      },
-                    ),
-                    _QuickActionCard(
-                      icon: Icons.settings,
-                      title: 'Settings',
-                      color: Colors.blueGrey,
-                      onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Settings screen - Coming soon!')),
-                        );
-                      },
                     ),
                   ],
                 ),
@@ -219,16 +237,18 @@ class _QuickActionCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         child: Padding(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(16),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 40, color: color),
-              const SizedBox(height: 8),
+              Icon(icon, size: 48, color: color),
+              const SizedBox(height: 12),
               Text(
                 title,
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.titleMedium,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ],
           ),

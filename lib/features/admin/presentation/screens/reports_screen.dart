@@ -2,11 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class ReportsScreen extends ConsumerWidget {
+class ReportsScreen extends ConsumerStatefulWidget {
   const ReportsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ReportsScreen> createState() => _ReportsScreenState();
+}
+
+class _ReportsScreenState extends ConsumerState<ReportsScreen> {
+  String? selectedLocationId;
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Reports & Analytics'),
@@ -16,6 +23,73 @@ class ReportsScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Filters Section
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(18),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Filters',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: StreamBuilder<QuerySnapshot>(
+                            stream: FirebaseFirestore.instance.collection('locations').snapshots(),
+                            builder: (context, locationsSnapshot) {
+                              if (!locationsSnapshot.hasData) {
+                                return const SizedBox.shrink();
+                              }
+
+                              final locations = locationsSnapshot.data!.docs.map((doc) {
+                                final data = doc.data() as Map<String, dynamic>;
+                                return {
+                                  'id': doc.id,
+                                  'name': data['name'] ?? 'Unknown',
+                                };
+                              }).toList();
+
+                              return DropdownButtonFormField<String>(
+                                initialValue: selectedLocationId,
+                                decoration: const InputDecoration(
+                                  labelText: 'Filter by Location',
+                                  border: OutlineInputBorder(),
+                                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                ),
+                                items: [
+                                  const DropdownMenuItem<String>(
+                                    value: null,
+                                    child: Text('All Locations'),
+                                  ),
+                                  ...locations.map((location) {
+                                    return DropdownMenuItem<String>(
+                                      value: location['id'],
+                                      child: Text(location['name']),
+                                    );
+                                  }),
+                                ],
+                                onChanged: (value) {
+                                  setState(() {
+                                    selectedLocationId = value;
+                                  });
+                                },
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
             Text(
               'System Overview',
               style: Theme.of(context).textTheme.headlineSmall,
@@ -28,8 +102,16 @@ class ReportsScreen extends ConsumerWidget {
                   return const CircularProgressIndicator();
                 }
 
-                final totalUsers = usersSnapshot.data!.docs.length;
-                final activeUsers = usersSnapshot.data!.docs
+                var users = usersSnapshot.data!.docs;
+                if (selectedLocationId != null) {
+                  users = users.where((doc) {
+                    final data = doc.data() as Map<String, dynamic>;
+                    return data['locationId'] == selectedLocationId;
+                  }).toList();
+                }
+
+                final totalUsers = users.length;
+                final activeUsers = users
                     .where((doc) => (doc.data() as Map<String, dynamic>)['isActive'] != false)
                     .length;
 
@@ -40,8 +122,16 @@ class ReportsScreen extends ConsumerWidget {
                       return const CircularProgressIndicator();
                     }
 
-                    final totalShops = shopsSnapshot.data!.docs.length;
-                    final activeShops = shopsSnapshot.data!.docs
+                    var shops = shopsSnapshot.data!.docs;
+                    if (selectedLocationId != null) {
+                      shops = shops.where((doc) {
+                        final data = doc.data() as Map<String, dynamic>;
+                        return data['locationId'] == selectedLocationId;
+                      }).toList();
+                    }
+
+                    final totalShops = shops.length;
+                    final activeShops = shops
                         .where((doc) => (doc.data() as Map<String, dynamic>)['isActive'] != false)
                         .length;
 
@@ -52,8 +142,16 @@ class ReportsScreen extends ConsumerWidget {
                           return const CircularProgressIndicator();
                         }
 
-                        final totalProducts = productsSnapshot.data!.docs.length;
-                        final activeProducts = productsSnapshot.data!.docs
+                        var products = productsSnapshot.data!.docs;
+                        if (selectedLocationId != null) {
+                          products = products.where((doc) {
+                            final data = doc.data() as Map<String, dynamic>;
+                            return data['locationId'] == selectedLocationId;
+                          }).toList();
+                        }
+
+                        final totalProducts = products.length;
+                        final activeProducts = products
                             .where((doc) => (doc.data() as Map<String, dynamic>)['isActive'] != false)
                             .length;
 
@@ -64,12 +162,28 @@ class ReportsScreen extends ConsumerWidget {
                               return const CircularProgressIndicator();
                             }
 
-                            final totalOrders = ordersSnapshot.data!.docs.length;
-                            final pendingOrders = ordersSnapshot.data!.docs
-                                .where((doc) => doc['status'] == 'pending' || doc['status'] == 'confirmed')
+                            var orders = ordersSnapshot.data!.docs;
+                            
+                            // Filter by selected location
+                            if (selectedLocationId != null) {
+                              orders = orders.where((doc) {
+                                final data = doc.data() as Map<String, dynamic>;
+                                return data['shopLocationId'] == selectedLocationId;
+                              }).toList();
+                            }
+
+                            final totalOrders = orders.length;
+                            final pendingOrders = orders
+                                .where((doc) => (doc.data() as Map<String, dynamic>)['status'] == 'pending')
                                 .length;
-                            final processedOrders = ordersSnapshot.data!.docs
-                                .where((doc) => doc['status'] == 'billed')
+                            final confirmedOrders = orders
+                                .where((doc) => (doc.data() as Map<String, dynamic>)['status'] == 'confirmed')
+                                .length;
+                            final billedOrders = orders
+                                .where((doc) => (doc.data() as Map<String, dynamic>)['status'] == 'billed')
+                                .length;
+                            final deliveredOrders = orders
+                                .where((doc) => (doc.data() as Map<String, dynamic>)['status'] == 'delivered')
                                 .length;
 
                             return Column(
@@ -125,31 +239,25 @@ class ReportsScreen extends ConsumerWidget {
                                       children: [
                                         _OrderStatusRow(
                                           status: 'Pending',
-                                          count: ordersSnapshot.data!.docs
-                                              .where((doc) => doc['status'] == 'pending')
-                                              .length,
+                                          count: pendingOrders,
                                           color: Colors.orange,
                                         ),
                                         const Divider(),
                                         _OrderStatusRow(
                                           status: 'Confirmed',
-                                          count: ordersSnapshot.data!.docs
-                                              .where((doc) => doc['status'] == 'confirmed')
-                                              .length,
+                                          count: confirmedOrders,
                                           color: Colors.blue,
                                         ),
                                         const Divider(),
                                         _OrderStatusRow(
                                           status: 'Billed',
-                                          count: processedOrders,
+                                          count: billedOrders,
                                           color: Colors.green,
                                         ),
                                         const Divider(),
                                         _OrderStatusRow(
                                           status: 'Delivered',
-                                          count: ordersSnapshot.data!.docs
-                                              .where((doc) => doc['status'] == 'delivered')
-                                              .length,
+                                          count: deliveredOrders,
                                           color: Colors.teal,
                                         ),
                                       ],
@@ -166,16 +274,29 @@ class ReportsScreen extends ConsumerWidget {
                                   stream: FirebaseFirestore.instance
                                       .collection('orders')
                                       .orderBy('createdAt', descending: true)
-                                      .limit(5)
+                                      .limit(20)
                                       .snapshots(),
                                   builder: (context, recentOrdersSnapshot) {
                                     if (!recentOrdersSnapshot.hasData) {
                                       return const CircularProgressIndicator();
                                     }
 
+                                    var recentOrders = recentOrdersSnapshot.data!.docs;
+                                    
+                                    // Apply the same filters as the main analytics
+                                    if (selectedLocationId != null) {
+                                      recentOrders = recentOrders.where((doc) {
+                                        final data = doc.data() as Map<String, dynamic>;
+                                        return data['shopLocationId'] == selectedLocationId;
+                                      }).toList();
+                                    }
+
+                                    // Take only the first 5 after filtering
+                                    recentOrders = recentOrders.take(5).toList();
+
                                     return Card(
                                       child: Column(
-                                        children: recentOrdersSnapshot.data!.docs.map((order) {
+                                        children: recentOrders.map((order) {
                                           final data = order.data() as Map<String, dynamic>;
                                           final shopName = data['shopName'] ?? 'Unknown Shop';
                                           final status = data['status'] ?? 'pending';

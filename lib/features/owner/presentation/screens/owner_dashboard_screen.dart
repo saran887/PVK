@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../auth/providers/auth_provider.dart';
 
 class OwnerDashboardScreen extends ConsumerWidget {
@@ -63,41 +64,25 @@ class OwnerDashboardScreen extends ConsumerWidget {
                     icon: Icons.pie_chart,
                     title: 'Sales Report',
                     color: Colors.blue,
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Sales report - Coming soon!')),
-                      );
-                    },
+                    onTap: () => GoRouter.of(context).push('/admin/reports'),
                   ),
                   _QuickActionCard(
                     icon: Icons.trending_up,
                     title: 'Revenue Report',
                     color: Colors.green,
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Revenue report - Coming soon!')),
-                      );
-                    },
+                    onTap: () => GoRouter.of(context).push('/admin/reports'),
                   ),
                   _QuickActionCard(
                     icon: Icons.account_balance_wallet,
                     title: 'Outstanding Report',
                     color: Colors.orange,
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Outstanding report - Coming soon!')),
-                      );
-                    },
+                    onTap: () => GoRouter.of(context).push('/admin/reports'),
                   ),
                   _QuickActionCard(
                     icon: Icons.analytics,
                     title: 'Analytics',
                     color: Colors.purple,
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Analytics - Coming soon!')),
-                      );
-                    },
+                    onTap: () => GoRouter.of(context).push('/admin/reports'),
                   ),
                 ],
               ),

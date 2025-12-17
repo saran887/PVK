@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import '../../../auth/providers/auth_provider.dart';
+import '../utils/bill_generator.dart';
 
 class PendingOrdersScreen extends ConsumerWidget {
   const PendingOrdersScreen({super.key});
@@ -19,7 +20,6 @@ class PendingOrdersScreen extends ConsumerWidget {
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('orders')
-            .where('status', whereIn: ['pending', 'confirmed'])
             .orderBy('createdAt', descending: true)
             .snapshots(),
         builder: (context, snapshot) {
@@ -33,14 +33,24 @@ class PendingOrdersScreen extends ConsumerWidget {
 
           var orders = snapshot.data!.docs;
 
-          // Filter by location if user has a location assigned
-          if (userLocationId.isNotEmpty) {
-            orders = orders.where((order) {
-              final data = order.data() as Map<String, dynamic>;
+          // Filter by status (pending/confirmed) and location
+          orders = orders.where((order) {
+            final data = order.data() as Map<String, dynamic>;
+            final status = data['status'] as String?;
+            
+            // Only show pending and confirmed orders
+            if (status != 'pending' && status != 'confirmed') {
+              return false;
+            }
+            
+            // Filter by location if user has a location assigned
+            if (userLocationId.isNotEmpty) {
               final shopLocationId = data['shopLocationId'] as String?;
               return shopLocationId == null || shopLocationId.isEmpty || shopLocationId == userLocationId;
-            }).toList();
-          }
+            }
+            
+            return true;
+          }).toList();
 
           if (orders.isEmpty) {
             return const Center(
@@ -157,6 +167,21 @@ class PendingOrdersScreen extends ConsumerWidget {
                           icon: const Icon(Icons.receipt_long),
                           label: const Text('Process Billing'),
                           style: ElevatedButton.styleFrom(
+                            minimumSize: const Size(double.infinity, 40),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        OutlinedButton.icon(
+                          onPressed: () async {
+                            await BillGenerator.generateAndShare(
+                              context: context,
+                              orderId: orderId,
+                              order: order,
+                            );
+                          },
+                          icon: const Icon(Icons.picture_as_pdf),
+                          label: const Text('Generate Bill PDF'),
+                          style: OutlinedButton.styleFrom(
                             minimumSize: const Size(double.infinity, 40),
                           ),
                         ),

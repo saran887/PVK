@@ -109,15 +109,24 @@ class _AddPersonScreenState extends ConsumerState<AddPersonScreen> {
     try {
       if (widget.isEdit) {
         // Update existing user
-        await FirebaseFirestore.instance.collection('users').doc(widget.userId).update({
+        final updateData = {
           'name': _nameController.text.trim(),
           'phone': _phoneController.text.trim(),
           'code': _codeController.text,
           'role': _selectedRole.name.toUpperCase(),
-          'locationId': _selectedLocationId ?? '',
-          'locationName': _selectedLocationName ?? '',
           'updatedAt': FieldValue.serverTimestamp(),
-        });
+        };
+        
+        // Only add location for sales and delivery roles
+        if (_selectedRole == UserRole.sales || _selectedRole == UserRole.delivery) {
+          updateData['locationId'] = _selectedLocationId ?? '';
+          updateData['locationName'] = _selectedLocationName ?? '';
+        } else {
+          updateData['locationId'] = '';
+          updateData['locationName'] = '';
+        }
+        
+        await FirebaseFirestore.instance.collection('users').doc(widget.userId).update(updateData);
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -152,7 +161,7 @@ class _AddPersonScreenState extends ConsumerState<AddPersonScreen> {
           await secondaryApp.delete();
         }
 
-        await FirebaseFirestore.instance.collection('users').doc(userCredential.user!.uid).set({
+        final userData = {
           'name': _nameController.text.trim(),
           'email': randomEmail,
           'phone': _phoneController.text.trim(),
@@ -161,11 +170,20 @@ class _AddPersonScreenState extends ConsumerState<AddPersonScreen> {
           'password': randomPassword,
           'isActive': true,
           'assignedRoutes': [],
-          'locationId': _selectedLocationId ?? '',
-          'locationName': _selectedLocationName ?? '',
           'createdAt': FieldValue.serverTimestamp(),
           'updatedAt': FieldValue.serverTimestamp(),
-        });
+        };
+        
+        // Only add location for sales and delivery roles
+        if (_selectedRole == UserRole.sales || _selectedRole == UserRole.delivery) {
+          userData['locationId'] = _selectedLocationId ?? '';
+          userData['locationName'] = _selectedLocationName ?? '';
+        } else {
+          userData['locationId'] = '';
+          userData['locationName'] = '';
+        }
+        
+        await FirebaseFirestore.instance.collection('users').doc(userCredential.user!.uid).set(userData);
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -272,8 +290,9 @@ class _AddPersonScreenState extends ConsumerState<AddPersonScreen> {
                 });
               },
             ),
-            // Show location dropdown for all roles (sales, billing, delivery)
-            const SizedBox(height: 16),
+            // Show location dropdown only for sales and delivery roles
+            if (_selectedRole == UserRole.sales || _selectedRole == UserRole.delivery) ...[
+              const SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 value: _selectedLocationId,
                 decoration: const InputDecoration(
@@ -303,6 +322,7 @@ class _AddPersonScreenState extends ConsumerState<AddPersonScreen> {
                   return null;
                 },
               ),
+            ],
             const SizedBox(height: 32),
             ElevatedButton(
               onPressed: _isLoading ? null : _createUser,

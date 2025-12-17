@@ -58,7 +58,7 @@ class BillingHomeScreen extends ConsumerWidget {
                 crossAxisCount: 2,
                 mainAxisSpacing: 16,
                 crossAxisSpacing: 16,
-                childAspectRatio: 1.5,
+                childAspectRatio: 1,
                 children: [
                   _QuickActionCard(
                     icon: Icons.pending_actions,
@@ -81,6 +81,15 @@ class BillingHomeScreen extends ConsumerWidget {
                     title: 'Processed Orders',
                     color: Colors.green,
                     onTap: () {
+                      context.push('/billing/processed-orders');
+                    },
+                  ),
+                  _QuickActionCard(
+                    icon: Icons.receipt_long,
+                    title: 'Generate Bill',
+                    color: Colors.purple,
+                    onTap: () {
+                      // Navigate to processed orders where bills can be generated
                       context.push('/billing/processed-orders');
                     },
                   ),

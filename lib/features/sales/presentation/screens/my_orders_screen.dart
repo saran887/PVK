@@ -17,9 +17,12 @@ class MyOrdersScreen extends ConsumerWidget {
         title: const Text('My Orders'),
       ),
       body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('orders')
-            .orderBy('createdAt', descending: true)
+        stream: (userLocationId.isNotEmpty
+            ? FirebaseFirestore.instance
+              .collection('orders')
+              .where('shopLocationId', isEqualTo: userLocationId)
+            : FirebaseFirestore.instance.collection('orders'))
+          .orderBy('createdAt', descending: true)
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
@@ -32,14 +35,7 @@ class MyOrdersScreen extends ConsumerWidget {
 
           var orders = snapshot.data?.docs ?? [];
 
-          // Filter by location if user has a location assigned
-          if (userLocationId.isNotEmpty) {
-            orders = orders.where((order) {
-              final data = order.data() as Map<String, dynamic>;
-              final shopLocationId = data['shopLocationId'] as String?;
-              return shopLocationId == null || shopLocationId.isEmpty || shopLocationId == userLocationId;
-            }).toList();
-          }
+          // Orders are already filtered server-side by location when available.
 
           if (orders.isEmpty) {
             return const Center(

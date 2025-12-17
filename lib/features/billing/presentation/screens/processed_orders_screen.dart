@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import '../../../auth/providers/auth_provider.dart';
+import '../utils/bill_generator.dart';
 
 class ProcessedOrdersScreen extends ConsumerWidget {
   const ProcessedOrdersScreen({super.key});
@@ -289,6 +290,18 @@ class ProcessedOrdersScreen extends ConsumerWidget {
                       ),
                     ],
                   ),
+                ),
+                const SizedBox(height: 12),
+                FilledButton.icon(
+                  onPressed: () async {
+                    await BillGenerator.generateAndShare(
+                      context: context,
+                      orderId: orderId,
+                      order: order,
+                    );
+                  },
+                  icon: const Icon(Icons.picture_as_pdf),
+                  label: const Text('Generate Bill PDF'),
                 ),
               ],
             ),

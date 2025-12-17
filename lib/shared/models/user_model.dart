@@ -37,7 +37,7 @@ class UserModel {
       phone: data['phone'] ?? '',
       isActive: data['isActive'] ?? true,
       assignedRoutes: List<String>.from(data['assignedRoutes'] ?? []),
-      locationId: data['locationId'] as String?,
+      locationId: data['locationId']?.toString(),
       locationName: data['locationName'] as String?,
       createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate(),

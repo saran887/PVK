@@ -18,9 +18,9 @@ async function importProductsFromExcel() {
     console.log('\n=== Headers (First Row) ===');
     console.log(data[0]);
     
-    console.log('\n=== Sample Data (First 20 Rows) ===');
-    for (let i = 0; i < Math.min(20, data.length); i++) {
-      console.log(`Row ${i}:`, data[i]);
+    console.log('\n=== Sample Data (Rows 15-100) ===');
+    for (let i = 15; i < Math.min(100, data.length); i++) {
+      console.log(`Row ${i}:`, JSON.stringify(data[i]));
     }
     
     console.log('\n\nPlease review the structure above and update the script with:');

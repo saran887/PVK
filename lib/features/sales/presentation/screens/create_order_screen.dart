@@ -526,7 +526,7 @@ class _SelectProductScreenState extends State<_SelectProductScreen> {
             padding: const EdgeInsets.all(16),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
-              childAspectRatio: 0.65,
+              childAspectRatio: 1.2,
               crossAxisSpacing: 12,
               mainAxisSpacing: 12,
             ),
@@ -536,37 +536,19 @@ class _SelectProductScreenState extends State<_SelectProductScreen> {
               final productId = products[index].id;
               final customProductId = product['productId'] ?? '';
               final name = product['name'] ?? 'Unknown';
-              final price = (product['price'] ?? 0).toDouble();
-              final imageUrl = product['imageUrl'] ?? '';
+              final price = (product['sellingPrice'] ?? 0).toDouble();
+              final buyingPrice = (product['buyingPrice'] ?? 0).toDouble();
               final category = product['category'] ?? '';
 
               return Card(
                 clipBehavior: Clip.antiAlias,
                 child: InkWell(
                   onTap: () {
-                    _showQuantityDialog(context, productId, customProductId, name, price);
+                    _showQuantityDialog(context, productId, customProductId, name, price, buyingPrice);
                   },
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        height: 120,
-                        width: double.infinity,
-                        color: Colors.grey[300],
-                        child: imageUrl.isNotEmpty
-                            ? Image.network(
-                                imageUrl,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return const Center(
-                                    child: Icon(Icons.image, size: 40, color: Colors.grey),
-                                  );
-                                },
-                              )
-                            : const Center(
-                                child: Icon(Icons.image, size: 40, color: Colors.grey),
-                              ),
-                      ),
                       Padding(
                         padding: const EdgeInsets.all(8),
                         child: Column(
@@ -617,7 +599,7 @@ class _SelectProductScreenState extends State<_SelectProductScreen> {
     );
   }
 
-  void _showQuantityDialog(BuildContext context, String productId, String customProductId, String productName, double price) {
+  void _showQuantityDialog(BuildContext context, String productId, String customProductId, String productName, double price, double buyingPrice) {
     final quantityController = TextEditingController(text: '1');
 
     showDialog(
@@ -665,6 +647,8 @@ class _SelectProductScreenState extends State<_SelectProductScreen> {
                   'customProductId': customProductId,
                   'productName': productName,
                   'price': price,
+                  'buyingPrice': buyingPrice,
+                  'profit': price - buyingPrice,
                   'quantity': quantity,
                 });
               } else {

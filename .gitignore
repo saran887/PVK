@@ -51,3 +51,4 @@ android/app/google-services.json
 
 # Build outputs
 builds/
+.gradle-cache-tmp/

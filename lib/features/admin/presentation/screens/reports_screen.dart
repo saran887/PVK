@@ -11,6 +11,8 @@ class ReportsScreen extends StatefulWidget {
 
 class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateMixin {
   late TabController _tabController;
+  String _selectedPeriod = 'all'; // all, today, week, month
+  DateTimeRange? _customDateRange;
   
   @override
   void initState() {
@@ -22,6 +24,21 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
   void dispose() {
     _tabController.dispose();
     super.dispose();
+  }
+  
+  Future<void> _selectCustomDateRange() async {
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+      initialDateRange: _customDateRange,
+    );
+    if (picked != null) {
+      setState(() {
+        _customDateRange = picked;
+        _selectedPeriod = 'custom';
+      });
+    }
   }
 
   @override
@@ -36,6 +53,64 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
         backgroundColor: Colors.indigo.shade600,
         foregroundColor: Colors.white,
         elevation: 2,
+        actions: [
+          // Period Filter
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.filter_list),
+            onSelected: (value) {
+              if (value == 'custom') {
+                _selectCustomDateRange();
+              } else {
+                setState(() {
+                  _selectedPeriod = value;
+                  _customDateRange = null;
+                });
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(value: 'all', child: Text('All Time')),
+              const PopupMenuItem(value: 'today', child: Text('Today')),
+              const PopupMenuItem(value: 'week', child: Text('This Week')),
+              const PopupMenuItem(value: 'month', child: Text('This Month')),
+              const PopupMenuItem(value: 'custom', child: Text('Custom Range')),
+            ],
+          ),
+          // More Options
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            onSelected: (value) {
+              if (value == 'refresh') {
+                setState(() {});
+              } else if (value == 'export') {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Export feature coming soon')),
+                );
+              }
+            },
+            itemBuilder: (context) => const [
+              PopupMenuItem(
+                value: 'refresh',
+                child: Row(
+                  children: [
+                    Icon(Icons.refresh, size: 20),
+                    SizedBox(width: 8),
+                    Text('Refresh'),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: 'export',
+                child: Row(
+                  children: [
+                    Icon(Icons.download, size: 20),
+                    SizedBox(width: 8),
+                    Text('Export Data'),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: Colors.white,
@@ -43,23 +118,102 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
           labelColor: Colors.white,
           unselectedLabelColor: Colors.white70,
           tabs: const [
-            Tab(icon: Icon(Icons.analytics), text: 'Reports'),
-            Tab(icon: Icon(Icons.receipt_long), text: 'Bills'),
-            Tab(icon: Icon(Icons.people), text: 'Users'),
+            Tab(icon: Icon(Icons.analytics), text: 'Analytics'),
+            Tab(icon: Icon(Icons.receipt_long), text: 'Orders'),
+            Tab(icon: Icon(Icons.people), text: 'Staff'),
             Tab(icon: Icon(Icons.store), text: 'Shops'),
           ],
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
+      body: Column(
         children: [
-          _buildReportsTab(),
-          _buildBillsTab(),
-          _buildUsersTab(),
-          _buildShopsTab(),
+          // Period Indicator
+          if (_selectedPeriod != 'all')
+            Container(
+              padding: const EdgeInsets.all(12),
+              color: Colors.indigo.shade50,
+              child: Row(
+                children: [
+                  Icon(Icons.calendar_today, size: 16, color: Colors.indigo.shade700),
+                  const SizedBox(width: 8),
+                  Text(
+                    _getPeriodText(),
+                    style: TextStyle(
+                      color: Colors.indigo.shade700,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const Spacer(),
+                  TextButton(
+                    onPressed: () {
+                      setState(() {
+                        _selectedPeriod = 'all';
+                        _customDateRange = null;
+                      });
+                    },
+                    child: const Text('Clear Filter'),
+                  ),
+                ],
+              ),
+            ),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildReportsTab(),
+                _buildBillsTab(),
+                _buildUsersTab(),
+                _buildShopsTab(),
+              ],
+            ),
+          ),
         ],
       ),
     );
+  }
+  
+  String _getPeriodText() {
+    switch (_selectedPeriod) {
+      case 'today':
+        return 'Today';
+      case 'week':
+        return 'This Week';
+      case 'month':
+        return 'This Month';
+      case 'custom':
+        if (_customDateRange != null) {
+          return '${DateFormat('MMM dd').format(_customDateRange!.start)} - ${DateFormat('MMM dd, yyyy').format(_customDateRange!.end)}';
+        }
+        return 'Custom Range';
+      default:
+        return 'All Time';
+    }
+  }
+  
+  bool _isOrderInPeriod(DateTime? orderDate) {
+    if (orderDate == null) return false;
+    
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    
+    switch (_selectedPeriod) {
+      case 'today':
+        return orderDate.isAfter(today);
+      case 'week':
+        final weekStart = today.subtract(Duration(days: today.weekday - 1));
+        return orderDate.isAfter(weekStart);
+      case 'month':
+        final monthStart = DateTime(now.year, now.month, 1);
+        return orderDate.isAfter(monthStart);
+      case 'custom':
+        if (_customDateRange != null) {
+          return orderDate.isAfter(_customDateRange!.start.subtract(const Duration(days: 1))) &&
+                 orderDate.isBefore(_customDateRange!.end.add(const Duration(days: 1)));
+        }
+        return true;
+      default:
+        return true;
+    }
   }
 
   // Reports Tab - Revenue Analytics
@@ -67,7 +221,19 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Summary Header
+          Text(
+            'Financial Overview',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.indigo.shade800,
+            ),
+          ),
+          const SizedBox(height: 16),
+          
           // Revenue Overview Cards
           StreamBuilder<QuerySnapshot>(
             stream: FirebaseFirestore.instance.collection('orders').snapshots(),
@@ -79,8 +245,15 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
                     return const Center(child: CircularProgressIndicator());
                   }
 
-                  final orders = snapshot.data!.docs;
+                  final allOrders = snapshot.data!.docs;
                   final products = productsSnapshot.data!.docs;
+                  
+                  // Filter orders based on selected period
+                  final orders = allOrders.where((order) {
+                    final data = order.data() as Map<String, dynamic>;
+                    final createdAt = (data['createdAt'] as Timestamp?)?.toDate();
+                    return _isOrderInPeriod(createdAt);
+                  }).toList();
                   
                   // Create a map of product buying prices
                   final productBuyingPrices = {
@@ -89,27 +262,28 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
                   };
 
                   double totalProfit = 0;
-                  double todayProfit = 0;
-                  double weekProfit = 0;
-                  double monthProfit = 0;
-                  
                   double totalRevenue = 0;
-                  double todayRevenue = 0;
-                  double weekRevenue = 0;
-                  double monthRevenue = 0;
+                  double totalBuyingCost = 0;
+                  int totalOrdersCount = orders.length;
+                  int completedCount = 0;
+                  int pendingCount = 0;
                   
-                  final now = DateTime.now();
-                  final today = DateTime(now.year, now.month, now.day);
-                  final weekStart = today.subtract(Duration(days: today.weekday - 1));
-                  final monthStart = DateTime(now.year, now.month, 1);
-
                   for (final order in orders) {
                     final data = order.data() as Map<String, dynamic>;
-                    final createdAt = (data['createdAt'] as Timestamp?)?.toDate();
                     final items = data['items'] as List<dynamic>? ?? [];
                     final totalAmount = (data['totalAmount'] as num?)?.toDouble() ?? 0.0;
+                    final status = data['status'] as String? ?? 'pending';
+                    final paymentStatus = data['paymentStatus'] as String? ?? 'pending';
+                    
+                    if (status == 'delivered') completedCount++;
+                    if (status == 'pending') pendingCount++;
+                    
+                    // Only count paid orders in revenue and profit
+                    if (paymentStatus != 'paid') continue;
                     
                     double orderProfit = 0;
+                    double orderCost = 0;
+                    
                     for (var item in items) {
                       final quantity = (item['quantity'] as num?)?.toDouble() ?? 1;
                       final profit = (item['profit'] as num?)?.toDouble();
@@ -117,7 +291,6 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
                       if (profit != null) {
                         orderProfit += profit * quantity;
                       } else {
-                        // Fallback calculation
                         final price = (item['price'] as num?)?.toDouble() ?? 0;
                         var buyingPrice = (item['buyingPrice'] as num?)?.toDouble() ?? 0.0;
                         
@@ -128,70 +301,82 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
                           }
                         }
                         
-                        // Final fallback: assume standard margin (Selling = 1.1 * Buying)
                         if (buyingPrice == 0 && price > 0) {
                           buyingPrice = price / 1.1;
                         }
 
                         if (price > 0) {
                           orderProfit += (price - buyingPrice) * quantity;
+                          orderCost += buyingPrice * quantity;
                         }
                       }
                     }
                     
                     totalProfit += orderProfit;
                     totalRevenue += totalAmount;
-                    
-                    if (createdAt != null) {
-                      if (createdAt.isAfter(today)) {
-                        todayProfit += orderProfit;
-                        todayRevenue += totalAmount;
-                      }
-                      if (createdAt.isAfter(weekStart)) {
-                        weekProfit += orderProfit;
-                        weekRevenue += totalAmount;
-                      }
-                      if (createdAt.isAfter(monthStart)) {
-                        monthProfit += orderProfit;
-                        monthRevenue += totalAmount;
-                      }
-                    }
+                    totalBuyingCost += orderCost;
                   }
+
+                  final profitMargin = totalRevenue > 0 ? (totalProfit / totalRevenue * 100) : 0;
+                  final avgOrderValue = totalOrdersCount > 0 ? totalRevenue / totalOrdersCount : 0;
 
                   return Column(
                     children: [
-                      // Revenue Section
-                      const Padding(
-                        padding: EdgeInsets.only(bottom: 8.0),
-                        child: Text('Revenue (Sales)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                      ),
+                      // Main Stats Cards
                       Row(
                         children: [
-                          Expanded(child: _buildRevenueCard('Total Revenue', totalRevenue, Icons.attach_money, Colors.indigo)),
+                          Expanded(
+                            child: _buildRevenueCard(
+                              'Total Revenue',
+                              totalRevenue,
+                              Icons.payments,
+                              Colors.blue,
+                              subtitle: '$totalOrdersCount orders',
+                            ),
+                          ),
                           const SizedBox(width: 12),
-                          Expanded(child: _buildRevenueCard('Today Revenue', todayRevenue, Icons.today, Colors.blue)),
+                          Expanded(
+                            child: _buildRevenueCard(
+                              'Net Profit',
+                              totalProfit,
+                              Icons.trending_up,
+                              Colors.green,
+                              subtitle: '${profitMargin.toStringAsFixed(1)}% margin',
+                            ),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 12),
                       
-                      // Profit Section
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 8.0),
-                        child: Text('Profit (Net)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                      ),
+                      // Secondary Stats
                       Row(
                         children: [
-                          Expanded(child: _buildRevenueCard('Total Profit', totalProfit, Icons.currency_rupee, Colors.green)),
+                          Expanded(
+                            child: _buildStatCard2(
+                              'Avg Order',
+                              '₹${avgOrderValue.toStringAsFixed(0)}',
+                              Icons.shopping_cart,
+                              Colors.purple,
+                            ),
+                          ),
                           const SizedBox(width: 12),
-                          Expanded(child: _buildRevenueCard('Today Profit', todayProfit, Icons.today, Colors.teal)),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(child: _buildRevenueCard('Week Profit', weekProfit, Icons.date_range, Colors.orange)),
+                          Expanded(
+                            child: _buildStatCard2(
+                              'Completed',
+                              '$completedCount',
+                              Icons.check_circle,
+                              Colors.teal,
+                            ),
+                          ),
                           const SizedBox(width: 12),
-                          Expanded(child: _buildRevenueCard('Month Profit', monthProfit, Icons.calendar_month, Colors.purple)),
+                          Expanded(
+                            child: _buildStatCard2(
+                              'Pending',
+                              '$pendingCount',
+                              Icons.pending,
+                              Colors.orange,
+                            ),
+                          ),
                         ],
                       ),
                     ],
@@ -200,11 +385,20 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
               );
             },
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 24),
           
-          // Quick Analytics
+          // Detailed Analytics Section
+          Text(
+            'Detailed Analytics',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.indigo.shade800,
+            ),
+          ),
+          const SizedBox(height: 12),
           Card(
-            elevation: 4,
+            elevation: 3,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             child: Padding(
               padding: const EdgeInsets.all(20),
@@ -213,11 +407,11 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.analytics, color: Colors.indigo.shade600, size: 28),
+                      Icon(Icons.insights, color: Colors.indigo.shade600, size: 28),
                       const SizedBox(width: 12),
                       Text(
-                        'Profit Analytics',
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        'Performance Metrics',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.bold,
                           color: Colors.indigo.shade800,
                         ),
@@ -230,8 +424,140 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
               ),
             ),
           ),
+          
+          const SizedBox(height: 24),
+          
+          // Top Products Section
+          Text(
+            'Top Products',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.indigo.shade800,
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildTopProductsSection(),
         ],
       ),
+    );
+  }
+  
+  Widget _buildTopProductsSection() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance.collection('orders').snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Card(child: Padding(padding: EdgeInsets.all(20), child: Center(child: CircularProgressIndicator())));
+        }
+
+        final allOrders = snapshot.data!.docs;
+        final orders = allOrders.where((order) {
+          final data = order.data() as Map<String, dynamic>;
+          final createdAt = (data['createdAt'] as Timestamp?)?.toDate();
+          return _isOrderInPeriod(createdAt);
+        }).toList();
+
+        // Aggregate product sales
+        final Map<String, Map<String, dynamic>> productSales = {};
+        
+        for (final order in orders) {
+          final data = order.data() as Map<String, dynamic>;
+          final items = data['items'] as List<dynamic>? ?? [];
+          
+          for (var item in items) {
+            final productId = item['productId'] as String? ?? 'unknown';
+            final productName = item['name'] ?? item['productName'] ?? 'Unknown';
+            final quantity = (item['quantity'] as num?)?.toDouble() ?? 1;
+            final price = (item['price'] as num?)?.toDouble() ?? 0;
+            
+            if (!productSales.containsKey(productId)) {
+              productSales[productId] = {
+                'name': productName,
+                'quantity': 0.0,
+                'revenue': 0.0,
+              };
+            }
+            
+            productSales[productId]!['quantity'] = 
+                (productSales[productId]!['quantity'] as double) + quantity;
+            productSales[productId]!['revenue'] = 
+                (productSales[productId]!['revenue'] as double) + (price * quantity);
+          }
+        }
+
+        // Sort by revenue and get top 5
+        final sortedProducts = productSales.entries.toList()
+          ..sort((a, b) => (b.value['revenue'] as double).compareTo(a.value['revenue'] as double));
+        
+        final topProducts = sortedProducts.take(5).toList();
+        
+        if (topProducts.isEmpty) {
+          return Card(
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Center(
+                child: Column(
+                  children: [
+                    Icon(Icons.inventory_2_outlined, size: 48, color: Colors.grey.shade400),
+                    const SizedBox(height: 12),
+                    Text('No product data available', style: TextStyle(color: Colors.grey.shade600)),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
+
+        return Card(
+          elevation: 3,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: topProducts.asMap().entries.map((entry) {
+                final index = entry.key;
+                final product = entry.value;
+                final name = product.value['name'];
+                final quantity = product.value['quantity'];
+                final revenue = product.value['revenue'];
+                
+                return Column(
+                  children: [
+                    if (index > 0) const Divider(),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: CircleAvatar(
+                        backgroundColor: Colors.indigo.shade100,
+                        child: Text(
+                          '${index + 1}',
+                          style: TextStyle(
+                            color: Colors.indigo.shade800,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      title: Text(
+                        name,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      subtitle: Text('Sold: ${quantity.toStringAsFixed(0)} units'),
+                      trailing: Text(
+                        '₹${revenue.toStringAsFixed(0)}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: Colors.green,
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              }).toList(),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -247,17 +573,117 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
           return const Center(child: CircularProgressIndicator());
         }
 
-        final orders = snapshot.data!.docs;
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: orders.length,
-          itemBuilder: (context, index) {
-            final order = orders[index];
-            final data = order.data() as Map<String, dynamic>;
-            return _buildBillCard(order.id, data);
-          },
+        final allOrders = snapshot.data!.docs;
+        
+        // Filter orders based on selected period
+        final orders = allOrders.where((order) {
+          final data = order.data() as Map<String, dynamic>;
+          final createdAt = (data['createdAt'] as Timestamp?)?.toDate();
+          return _isOrderInPeriod(createdAt);
+        }).toList();
+        
+        if (orders.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.receipt_long_outlined, size: 64, color: Colors.grey.shade400),
+                const SizedBox(height: 16),
+                Text(
+                  'No orders found',
+                  style: TextStyle(fontSize: 18, color: Colors.grey.shade600),
+                ),
+                if (_selectedPeriod != 'all')
+                  TextButton(
+                    onPressed: () {
+                      setState(() {
+                        _selectedPeriod = 'all';
+                        _customDateRange = null;
+                      });
+                    },
+                    child: const Text('View all orders'),
+                  ),
+              ],
+            ),
+          );
+        }
+        
+        // Calculate summary stats
+        final totalAmount = orders.fold<double>(0, (sum, order) {
+          final data = order.data() as Map<String, dynamic>;
+          final paymentStatus = data['paymentStatus'] as String? ?? 'pending';
+          // Only count paid orders
+          if (paymentStatus == 'paid') {
+            return sum + ((data['totalAmount'] as num?)?.toDouble() ?? 0.0);
+          }
+          return sum;
+        });
+        
+        final completedOrders = orders.where((order) {
+          final data = order.data() as Map<String, dynamic>;
+          return data['status'] == 'delivered';
+        }).length;
+
+        return Column(
+          children: [
+            // Summary Bar
+            Container(
+              padding: const EdgeInsets.all(16),
+              color: Colors.indigo.shade50,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _buildMiniStat('Total Orders', '${orders.length}', Icons.receipt),
+                  ),
+                  Container(width: 1, height: 40, color: Colors.indigo.shade200),
+                  Expanded(
+                    child: _buildMiniStat('Completed', '$completedOrders', Icons.check_circle),
+                  ),
+                  Container(width: 1, height: 40, color: Colors.indigo.shade200),
+                  Expanded(
+                    child: _buildMiniStat('Revenue', '₹${totalAmount.toStringAsFixed(0)}', Icons.payments),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: orders.length,
+                itemBuilder: (context, index) {
+                  final order = orders[index];
+                  final data = order.data() as Map<String, dynamic>;
+                  return _buildBillCard(order.id, data);
+                },
+              ),
+            ),
+          ],
         );
       },
+    );
+  }
+  
+  Widget _buildMiniStat(String label, String value, IconData icon) {
+    return Column(
+      children: [
+        Icon(icon, color: Colors.indigo.shade600, size: 20),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.indigo.shade800,
+          ),
+        ),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            color: Colors.grey.shade700,
+          ),
+        ),
+      ],
     );
   }
 
@@ -271,36 +697,97 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      child: ListTile(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: InkWell(
         onTap: () => _showOrderDetails(orderId, data),
-        leading: CircleAvatar(
-          backgroundColor: _getStatusColor(status).withOpacity(0.2),
-          child: Icon(
-            Icons.receipt_long,
-            color: _getStatusColor(status),
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  CircleAvatar(
+                    backgroundColor: _getStatusColor(status).withOpacity(0.2),
+                    child: Icon(
+                      Icons.receipt_long,
+                      color: _getStatusColor(status),
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          shopName,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        Text(
+                          'Order #${orderId.substring(0, 8)}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        '₹${totalAmount.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                          color: Colors.green,
+                        ),
+                      ),
+                      Text(
+                        '${items.length} items',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  if (createdAt != null)
+                    Row(
+                      children: [
+                        Icon(Icons.access_time, size: 14, color: Colors.grey.shade600),
+                        const SizedBox(width: 4),
+                        Text(
+                          DateFormat('dd MMM, h:mm a').format(createdAt),
+                          style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                        ),
+                      ],
+                    ),
+                  Row(
+                    children: [
+                      _buildStatusChip('$status'),
+                      const SizedBox(width: 8),
+                      _buildStatusChip('₹ $paymentStatus'),
+                    ],
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
-        title: Text(
-          '$shopName - Order #${orderId.substring(0, 8)}',
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Items: ${items.length} • Amount: ₹${totalAmount.toStringAsFixed(2)}'),
-            if (createdAt != null)
-              Text('Date: ${DateFormat('dd MMM yyyy, h:mm a').format(createdAt)}'),
-            Row(
-              children: [
-                _buildStatusChip('Order: $status'),
-                const SizedBox(width: 8),
-                _buildStatusChip('Payment: $paymentStatus'),
-              ],
-            ),
-          ],
-        ),
-        trailing: const Icon(Icons.chevron_right),
-        isThreeLine: true,
       ),
     );
   }
@@ -345,26 +832,63 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
         }).toList();
 
         if (users.isEmpty) {
-          return const Center(
+          return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.people_outline, size: 64, color: Colors.grey),
-                SizedBox(height: 16),
-                Text('No Sales or Delivery staff found', style: TextStyle(color: Colors.grey)),
+                Icon(Icons.people_outline, size: 64, color: Colors.grey.shade400),
+                const SizedBox(height: 16),
+                Text(
+                  'No Sales or Delivery staff found',
+                  style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+                ),
               ],
             ),
           );
         }
 
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: users.length,
-          itemBuilder: (context, index) {
-            final user = users[index];
-            final data = user.data() as Map<String, dynamic>;
-            return _buildUserCard(user.id, data);
-          },
+        // Calculate summary stats
+        int totalSalesStaff = users.where((doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          return (data['role'] as String? ?? '').toLowerCase().contains('sales');
+        }).length;
+        
+        int totalDeliveryStaff = users.length - totalSalesStaff;
+
+        return Column(
+          children: [
+            // Summary Header
+            Container(
+              padding: const EdgeInsets.all(16),
+              color: Colors.indigo.shade50,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _buildMiniStat('Sales Staff', '$totalSalesStaff', Icons.point_of_sale),
+                  ),
+                  Container(width: 1, height: 40, color: Colors.indigo.shade200),
+                  Expanded(
+                    child: _buildMiniStat('Delivery Staff', '$totalDeliveryStaff', Icons.local_shipping),
+                  ),
+                  Container(width: 1, height: 40, color: Colors.indigo.shade200),
+                  Expanded(
+                    child: _buildMiniStat('Total Staff', '${users.length}', Icons.people),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: users.length,
+                itemBuilder: (context, index) {
+                  final user = users[index];
+                  final data = user.data() as Map<String, dynamic>;
+                  return _buildUserCard(user.id, data);
+                },
+              ),
+            ),
+          ],
         );
       },
     );
@@ -374,21 +898,62 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
     final name = userData['name'] as String? ?? 'Unknown User';
     final email = userData['email'] as String? ?? 'No email';
     final role = userData['role'] as String? ?? 'user';
+    final isSales = role.toLowerCase().contains('sales');
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: ExpansionTile(
+        tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         leading: CircleAvatar(
-          backgroundColor: role.toLowerCase().contains('sales') 
-              ? Colors.blue.shade100 
-              : Colors.orange.shade100,
+          radius: 24,
+          backgroundColor: isSales ? Colors.blue.shade100 : Colors.orange.shade100,
           child: Icon(
-            role.toLowerCase().contains('sales') ? Icons.point_of_sale : Icons.local_shipping,
-            color: role.toLowerCase().contains('sales') ? Colors.blue.shade800 : Colors.orange.shade800,
+            isSales ? Icons.point_of_sale : Icons.local_shipping,
+            color: isSales ? Colors.blue.shade800 : Colors.orange.shade800,
+            size: 24,
           ),
         ),
-        title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Text('$email • ${role.toUpperCase()}'),
+        title: Text(
+          name,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Icon(Icons.email_outlined, size: 14, color: Colors.grey.shade600),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    email,
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: isSales ? Colors.blue.shade50 : Colors.orange.shade50,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                role.toUpperCase(),
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: isSales ? Colors.blue.shade800 : Colors.orange.shade800,
+                ),
+              ),
+            ),
+          ],
+        ),
         children: [
           StreamBuilder<QuerySnapshot>(
             stream: FirebaseFirestore.instance
@@ -420,7 +985,11 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
 
               for (final order in orders) {
                 final orderData = order.data() as Map<String, dynamic>;
-                totalSales += (orderData['totalAmount'] as num?)?.toDouble() ?? 0;
+                final paymentStatus = orderData['paymentStatus'] as String? ?? 'pending';
+                // Only count paid orders in sales
+                if (paymentStatus == 'paid') {
+                  totalSales += (orderData['totalAmount'] as num?)?.toDouble() ?? 0;
+                }
                 final status = orderData['status'] as String? ?? '';
                 if (status == 'delivered') deliveredOrders++;
                 if (status == 'billed') billedOrders++;
@@ -433,18 +1002,30 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
-                    Row(
-                      children: [
-                        Expanded(child: _buildStatTile('Total Sales', '₹${totalSales.toStringAsFixed(2)}', Colors.green)),
-                        Expanded(child: _buildStatTile('Total Orders', '${orders.length}', Colors.blue)),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(child: _buildStatTile('Shops Covered', '${uniqueShops.length}', Colors.purple)),
-                        Expanded(child: _buildStatTile('Delivered', '$deliveredOrders', Colors.orange)),
-                      ],
+                    // Stats Grid
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Column(
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(child: _buildStatTile('Total Sales', '₹${totalSales.toStringAsFixed(2)}', Colors.green)),
+                              Expanded(child: _buildStatTile('Total Orders', '${orders.length}', Colors.blue)),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Expanded(child: _buildStatTile('Shops Covered', '${uniqueShops.length}', Colors.purple)),
+                              Expanded(child: _buildStatTile('Delivered', '$deliveredOrders', Colors.orange)),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                     if (orders.isNotEmpty) ...[
                       const SizedBox(height: 16),
@@ -507,37 +1088,128 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
         }
 
         final shops = snapshot.data!.docs;
+        
+        if (shops.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.store_outlined, size: 64, color: Colors.grey.shade400),
+                const SizedBox(height: 16),
+                Text(
+                  'No shops found',
+                  style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+                ),
+              ],
+            ),
+          );
+        }
+        
         // Group shops by location
         final shopsByLocation = <String, List<QueryDocumentSnapshot>>{};
+        int activeShops = 0;
         
         for (final shop in shops) {
           final data = shop.data() as Map<String, dynamic>;
-          final location = data['location'] as String? ?? 'Unknown Location';
-          shopsByLocation.putIfAbsent(location, () => []).add(shop);
+          // Check multiple possible field names for location
+          final location = data['locationName'] as String? ?? 
+                          data['location'] as String?;
+          final locationKey = (location == null || location.isEmpty) 
+              ? 'Unassigned Location' 
+              : location;
+          shopsByLocation.putIfAbsent(locationKey, () => []).add(shop);
+          if (data['isActive'] == true) activeShops++;
         }
+        
+        // Sort locations, but put "Unassigned Location" at the end
+        final sortedLocations = shopsByLocation.keys.toList()..sort((a, b) {
+          if (a == 'Unassigned Location') return 1;
+          if (b == 'Unassigned Location') return -1;
+          return a.compareTo(b);
+        });
 
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: shopsByLocation.length,
-          itemBuilder: (context, index) {
-            final location = shopsByLocation.keys.elementAt(index);
-            final locationShops = shopsByLocation[location]!;
-            
-            return Card(
-              margin: const EdgeInsets.only(bottom: 16),
-              child: ExpansionTile(
-                title: Text(
-                  location,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                ),
-                subtitle: Text('${locationShops.length} shops'),
-                children: locationShops.map((shop) {
-                  final data = shop.data() as Map<String, dynamic>;
-                  return _buildShopCard(shop.id, data);
-                }).toList(),
+        return Column(
+          children: [
+            // Summary Header
+            Container(
+              padding: const EdgeInsets.all(16),
+              color: Colors.indigo.shade50,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _buildMiniStat('Locations', '${shopsByLocation.length}', Icons.location_on),
+                  ),
+                  Container(width: 1, height: 40, color: Colors.indigo.shade200),
+                  Expanded(
+                    child: _buildMiniStat('Total Shops', '${shops.length}', Icons.store),
+                  ),
+                  Container(width: 1, height: 40, color: Colors.indigo.shade200),
+                  Expanded(
+                    child: _buildMiniStat('Active', '$activeShops', Icons.check_circle),
+                  ),
+                ],
               ),
-            );
-          },
+            ),
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: sortedLocations.length,
+                itemBuilder: (context, index) {
+                  final location = sortedLocations[index];
+                  final locationShops = shopsByLocation[location]!;
+                  final activeCount = locationShops.where((shop) {
+                    final data = shop.data() as Map<String, dynamic>;
+                    return data['isActive'] == true;
+                  }).length;
+                  
+                  final isUnassigned = location == 'Unassigned Location';
+                  
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    elevation: 3,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    child: ExpansionTile(
+                      tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      leading: CircleAvatar(
+                        backgroundColor: isUnassigned 
+                            ? Colors.grey.shade200 
+                            : Colors.indigo.shade100,
+                        child: Icon(
+                          isUnassigned ? Icons.location_off : Icons.location_city,
+                          color: isUnassigned 
+                              ? Colors.grey.shade700 
+                              : Colors.indigo.shade800,
+                        ),
+                      ),
+                      title: Text(
+                        location,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                          color: isUnassigned ? Colors.grey.shade700 : null,
+                        ),
+                      ),
+                      subtitle: Row(
+                        children: [
+                          Icon(Icons.store, size: 14, color: Colors.grey.shade600),
+                          const SizedBox(width: 4),
+                          Text('${locationShops.length} shops'),
+                          const SizedBox(width: 12),
+                          Icon(Icons.check_circle, size: 14, color: Colors.green.shade600),
+                          const SizedBox(width: 4),
+                          Text('$activeCount active'),
+                        ],
+                      ),
+                      children: locationShops.map((shop) {
+                        final data = shop.data() as Map<String, dynamic>;
+                        return _buildShopCard(shop.id, data);
+                      }).toList(),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
         );
       },
     );
@@ -550,38 +1222,77 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
     final isActive = shopData['isActive'] as bool? ?? true;
 
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      elevation: 1,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       child: ExpansionTile(
+        tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         leading: CircleAvatar(
-          backgroundColor: isActive ? Colors.green.shade100 : Colors.red.shade100,
+          backgroundColor: isActive ? Colors.green.shade100 : Colors.grey.shade300,
           child: Icon(
             Icons.store,
-            color: isActive ? Colors.green.shade800 : Colors.red.shade800,
+            color: isActive ? Colors.green.shade800 : Colors.grey.shade600,
+            size: 20,
           ),
         ),
-        title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        title: Row(
           children: [
-            if (address.isNotEmpty) Text(address),
-            if (phone.isNotEmpty) Text(phone),
+            Expanded(
+              child: Text(
+                name,
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+              ),
+            ),
             Container(
-              margin: const EdgeInsets.only(top: 4),
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                color: isActive ? Colors.green.shade100 : Colors.red.shade100,
-                borderRadius: BorderRadius.circular(8),
+                color: isActive ? Colors.green.shade100 : Colors.grey.shade200,
+                borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
                 isActive ? 'ACTIVE' : 'INACTIVE',
                 style: TextStyle(
-                  color: isActive ? Colors.green.shade800 : Colors.red.shade800,
-                  fontSize: 10,
+                  color: isActive ? Colors.green.shade800 : Colors.grey.shade700,
+                  fontSize: 9,
                   fontWeight: FontWeight.bold,
                 ),
               ),
             ),
           ],
+        ),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 6),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (address.isNotEmpty)
+                Row(
+                  children: [
+                    Icon(Icons.location_on_outlined, size: 14, color: Colors.grey.shade600),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        address,
+                        style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              if (phone.isNotEmpty)
+                Row(
+                  children: [
+                    Icon(Icons.phone_outlined, size: 14, color: Colors.grey.shade600),
+                    const SizedBox(width: 4),
+                    Text(
+                      phone,
+                      style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                    ),
+                  ],
+                ),
+            ],
+          ),
         ),
         children: [
           StreamBuilder<QuerySnapshot>(
@@ -593,7 +1304,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
               if (!orderSnapshot.hasData) {
                 return const Padding(
                   padding: EdgeInsets.all(16),
-                  child: CircularProgressIndicator(),
+                  child: Center(child: CircularProgressIndicator()),
                 );
               }
 
@@ -614,10 +1325,14 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
               for (final order in orders) {
                 final orderData = order.data() as Map<String, dynamic>;
                 final amount = (orderData['totalAmount'] as num?)?.toDouble() ?? 0;
-                totalPurchases += amount;
+                final paymentStatus = orderData['paymentStatus'] as String? ?? 'pending';
+                
+                // Only count paid orders in total purchases
+                if (paymentStatus == 'paid') {
+                  totalPurchases += amount;
+                }
                 
                 final status = orderData['status'] as String? ?? 'pending';
-                final paymentStatus = orderData['paymentStatus'] as String? ?? 'pending';
                 
                 if (status == 'pending' || paymentStatus == 'pending') {
                   pendingAmount += amount;
@@ -629,18 +1344,30 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
-                    Row(
-                      children: [
-                        Expanded(child: _buildStatTile('Total Purchases', '₹${totalPurchases.toStringAsFixed(2)}', Colors.green)),
-                        Expanded(child: _buildStatTile('Total Orders', '${orders.length}', Colors.blue)),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(child: _buildStatTile('Pending Amount', '₹${pendingAmount.toStringAsFixed(2)}', Colors.orange)),
-                        Expanded(child: _buildStatTile('Pending Orders', '$pendingOrders', Colors.red)),
-                      ],
+                    // Stats Grid
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Column(
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(child: _buildStatTile('Total Purchases', '₹${totalPurchases.toStringAsFixed(2)}', Colors.green)),
+                              Expanded(child: _buildStatTile('Total Orders', '${orders.length}', Colors.blue)),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Expanded(child: _buildStatTile('Pending Amount', '₹${pendingAmount.toStringAsFixed(2)}', Colors.orange)),
+                              Expanded(child: _buildStatTile('Pending Orders', '$pendingOrders', Colors.red)),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                     if (orders.isNotEmpty) ...[
                       const SizedBox(height: 16),
@@ -668,7 +1395,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
   }
 
   // Helper Widgets
-  Widget _buildRevenueCard(String title, double value, IconData icon, Color color) {
+  Widget _buildRevenueCard(String title, double value, IconData icon, Color color, {String? subtitle}) {
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -685,7 +1412,28 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, color: Colors.white, size: 32),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Icon(icon, color: Colors.white, size: 32),
+                if (subtitle != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      subtitle,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
             const SizedBox(height: 12),
             Text(
               title,
@@ -696,13 +1444,57 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
               ),
             ),
             const SizedBox(height: 8),
-            Text(
-              '₹${value.toStringAsFixed(2)}',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                '₹${value.toStringAsFixed(2)}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildStatCard2(String title, String value, IconData icon, Color color) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          color: color.withOpacity(0.1),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: color, size: 28),
+            const SizedBox(height: 8),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                value,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey.shade700,
+              ),
+              textAlign: TextAlign.center,
             ),
           ],
         ),
@@ -721,8 +1513,15 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
               return const Center(child: CircularProgressIndicator());
             }
 
-            final orders = snapshot.data!.docs;
+            final allOrders = snapshot.data!.docs;
             final products = productsSnapshot.data!.docs;
+            
+            // Filter orders based on selected period
+            final orders = allOrders.where((order) {
+              final data = order.data() as Map<String, dynamic>;
+              final createdAt = (data['createdAt'] as Timestamp?)?.toDate();
+              return _isOrderInPeriod(createdAt);
+            }).toList();
             
             // Create a map of product buying prices
             final productBuyingPrices = {
@@ -739,6 +1538,21 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
               final data = doc.data() as Map<String, dynamic>;
               return data['status'] == 'delivered';
             }).length;
+            final cancelledOrders = orders.where((doc) {
+              final data = doc.data() as Map<String, dynamic>;
+              return data['status'] == 'cancelled';
+            }).length;
+            
+            // Count unique shops and customers
+            final uniqueShops = orders.map((order) {
+              final data = order.data() as Map<String, dynamic>;
+              return data['shopId'] as String? ?? '';
+            }).where((id) => id.isNotEmpty).toSet().length;
+            
+            final uniqueCustomers = orders.map((order) {
+              final data = order.data() as Map<String, dynamic>;
+              return data['userId'] as String? ?? '';
+            }).where((id) => id.isNotEmpty).toSet().length;
             
             double totalProfit = 0;
             for (final order in orders) {
@@ -752,7 +1566,6 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
                 if (profit != null) {
                   totalProfit += profit * quantity;
                 } else {
-                  // Fallback calculation
                   final price = (item['price'] as num?)?.toDouble() ?? 0;
                   var buyingPrice = (item['buyingPrice'] as num?)?.toDouble() ?? 0.0;
                   
@@ -763,7 +1576,6 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
                     }
                   }
                   
-                  // Final fallback: assume standard margin (Selling = 1.1 * Buying)
                   if (buyingPrice == 0 && price > 0) {
                     buyingPrice = price / 1.1;
                   }
@@ -778,15 +1590,17 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
             return GridView.count(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: 2,
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
-              childAspectRatio: 1.5,
+              crossAxisCount: 3,
+              crossAxisSpacing: 8,
+              mainAxisSpacing: 8,
+              childAspectRatio: 0.88,
               children: [
-                _buildStatCard('Total Orders', totalOrders.toString(), Icons.shopping_bag),
-                _buildStatCard('Pending', pendingOrders.toString(), Icons.pending),
-                _buildStatCard('Completed', completedOrders.toString(), Icons.check_circle),
-                _buildStatCard('Profit', '₹${totalProfit.toStringAsFixed(2)}', Icons.monetization_on),
+                _buildStatCard('Orders', totalOrders.toString(), Icons.shopping_bag, Colors.blue),
+                _buildStatCard('Completed', completedOrders.toString(), Icons.check_circle, Colors.green),
+                _buildStatCard('Pending', pendingOrders.toString(), Icons.pending, Colors.orange),
+                _buildStatCard('Cancelled', cancelledOrders.toString(), Icons.cancel, Colors.red),
+                _buildStatCard('Shops', uniqueShops.toString(), Icons.store, Colors.purple),
+                _buildStatCard('Customers', uniqueCustomers.toString(), Icons.people, Colors.teal),
               ],
             );
           }
@@ -795,39 +1609,44 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
     );
   }
 
-  Widget _buildStatCard(String title, String value, IconData icon) {
+  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
     return Card(
       elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(12),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          color: color.withOpacity(0.1),
+        ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 28, color: Colors.indigo.shade600),
-            const SizedBox(height: 6),
-            Flexible(
+            Icon(icon, size: 24, color: color),
+            const SizedBox(height: 4),
+            FittedBox(
+              fit: BoxFit.scaleDown,
               child: Text(
                 value,
                 style: TextStyle(
-                  fontSize: 18,
+                  fontSize: 17,
                   fontWeight: FontWeight.bold,
-                  color: Colors.indigo.shade800,
+                  color: color,
                 ),
-                overflow: TextOverflow.ellipsis,
               ),
             ),
-            Flexible(
-              child: Text(
-                title,
-                style: TextStyle(
-                  fontSize: 11,
-                  color: Colors.grey.shade600,
-                ),
-                textAlign: TextAlign.center,
-                overflow: TextOverflow.ellipsis,
-                maxLines: 2,
+            const SizedBox(height: 2),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 10,
+                color: Colors.grey.shade700,
+                fontWeight: FontWeight.w500,
               ),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),

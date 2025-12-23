@@ -146,18 +146,22 @@ class AdminDashboardScreen extends ConsumerWidget {
                           ),
                         ),
                         const SizedBox(width: 16),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Welcome, ${user?.name ?? "Administrator"}',
-                              style: Theme.of(context).textTheme.titleLarge,
-                            ),
-                            Text(
-                              'Admin',
-                              style: Theme.of(context).textTheme.bodySmall,
-                            ),
-                          ],
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Welcome, ${user?.name ?? "Administrator"}',
+                                style: Theme.of(context).textTheme.titleLarge,
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                              ),
+                              Text(
+                                'Admin',
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),

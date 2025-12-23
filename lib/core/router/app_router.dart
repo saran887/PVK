@@ -26,6 +26,12 @@ import '../../features/delivery/presentation/screens/delivery_home_screen.dart';
 import '../../features/delivery/presentation/screens/ready_to_deliver_screen.dart';
 import '../../features/delivery/presentation/screens/delivery_history_screen.dart';
 import '../../features/owner/presentation/screens/owner_dashboard_screen.dart';
+import '../../features/owner/presentation/screens/owner_users_screen.dart';
+import '../../features/owner/presentation/screens/owner_shops_screen.dart';
+import '../../features/owner/presentation/screens/owner_products_screen.dart';
+import '../../features/owner/presentation/screens/owner_analytics_screen.dart';
+import '../../features/owner/presentation/screens/owner_expenses_screen.dart';
+import '../../features/owner/presentation/screens/owner_salary_screen.dart';
 
 class GoRouterNotifier extends ChangeNotifier {
   final Ref _ref;
@@ -92,6 +98,32 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/owner',
         builder: (context, state) => const OwnerDashboardScreen(),
+        routes: [
+          GoRoute(
+            path: 'users',
+            builder: (context, state) => const OwnerUsersScreen(),
+          ),
+          GoRoute(
+            path: 'shops',
+            builder: (context, state) => const OwnerShopsScreen(),
+          ),
+          GoRoute(
+            path: 'products',
+            builder: (context, state) => const OwnerProductsScreen(),
+          ),
+          GoRoute(
+            path: 'analytics',
+            builder: (context, state) => const OwnerAnalyticsScreen(),
+          ),
+          GoRoute(
+            path: 'expenses',
+            builder: (context, state) => const OwnerExpensesScreen(),
+          ),
+          GoRoute(
+            path: 'salary',
+            builder: (context, state) => const OwnerSalaryScreen(),
+          ),
+        ],
       ),
       GoRoute(
         path: '/admin',

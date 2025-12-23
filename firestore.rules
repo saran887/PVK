@@ -48,6 +48,8 @@ service cloud.firestore {
       allow list: if isOwner() || isAdmin();
       allow write: if isAdmin();
       allow create: if isAdmin();
+      // Allow owner to update salary field only
+      allow update: if isOwner() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['salary', 'salaryUpdatedAt']);
       allow update: if (isAuthenticated() && request.auth.uid == userId) || isAdmin();
     }
     

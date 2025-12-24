@@ -147,7 +147,7 @@ class OwnerDashboardScreen extends ConsumerWidget {
           crossAxisCount: 2,
           mainAxisSpacing: 12,
           crossAxisSpacing: 12,
-          childAspectRatio: 1,
+          childAspectRatio: 1.2,
           children: [
             _StatCard(
               icon: Icons.currency_rupee,

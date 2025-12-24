@@ -21,52 +21,85 @@ class _ProcessedOrdersScreenState extends ConsumerState<ProcessedOrdersScreen> {
     final userLocationId = currentUser?.locationId ?? '';
 
     return Scaffold(
+      backgroundColor: Colors.grey[50],
       appBar: AppBar(
         title: const Text('Processed Orders'),
+        elevation: 0,
+        backgroundColor: Colors.green.shade700,
+        foregroundColor: Colors.white,
       ),
       body: Column(
         children: [
           // Location Selector
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance.collection('locations').snapshots(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) {
-                  return const SizedBox.shrink();
-                }
-                final locations = snapshot.data!.docs.map((doc) {
-                  return {
-                    'id': doc.id,
-                    'name': doc['name'] ?? 'Unknown',
-                  };
-                }).toList();
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.green.shade700,
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(30),
+                bottomRight: Radius.circular(30),
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+              child: StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance.collection('locations').snapshots(),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) {
+                    return const SizedBox.shrink();
+                  }
+                  final locations = snapshot.data!.docs.map((doc) {
+                    return {
+                      'id': doc.id,
+                      'name': doc['name'] ?? 'Unknown',
+                    };
+                  }).toList();
 
-                return DropdownButtonFormField<String>(
-                  value: selectedLocationId,
-                  decoration: const InputDecoration(
-                    labelText: 'Select Location',
-                    border: OutlineInputBorder(),
-                  ),
-                  items: [
-                    const DropdownMenuItem<String>(
-                      value: null,
-                      child: Text('All Locations'),
+                  return Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
-                    ...locations.map((location) {
-                      return DropdownMenuItem<String>(
-                        value: location['id'],
-                        child: Text(location['name']!),
-                      );
-                    }),
-                  ],
-                  onChanged: (value) {
-                    setState(() {
-                      selectedLocationId = value;
-                    });
-                  },
-                );
-              },
+                    child: DropdownButtonFormField<String>(
+                      value: selectedLocationId,
+                      decoration: InputDecoration(
+                        labelText: 'Select Location',
+                        prefixIcon: Icon(Icons.location_on, color: Colors.green.shade700),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: BorderSide.none,
+                        ),
+                        filled: true,
+                        fillColor: Colors.white,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      ),
+                      items: [
+                        const DropdownMenuItem<String>(
+                          value: null,
+                          child: Text('All Locations'),
+                        ),
+                        ...locations.map((location) {
+                          return DropdownMenuItem<String>(
+                            value: location['id'],
+                            child: Text(location['name']!),
+                          );
+                        }),
+                      ],
+                      onChanged: (value) {
+                        setState(() {
+                          selectedLocationId = value;
+                        });
+                      },
+                    ),
+                  );
+                },
+              ),
             ),
           ),
           Expanded(
@@ -126,92 +159,185 @@ class _ProcessedOrdersScreenState extends ConsumerState<ProcessedOrdersScreen> {
                     final createdAt = (order['createdAt'] as Timestamp?)?.toDate();
 
                     return Card(
-                      margin: const EdgeInsets.only(bottom: 12),
+                      elevation: 2,
+                      margin: const EdgeInsets.only(bottom: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                       child: InkWell(
                         onTap: () {
                           _showOrderDetails(context, orderId, order);
                         },
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          shopName,
-                                          style: const TextStyle(
+                        borderRadius: BorderRadius.circular(16),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(16),
+                            gradient: LinearGradient(
+                              colors: [Colors.white, Colors.green.shade50],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Expanded(
+                                      child: Row(
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.all(10),
+                                            decoration: BoxDecoration(
+                                              color: Colors.green.shade100,
+                                              borderRadius: BorderRadius.circular(12),
+                                            ),
+                                            child: Icon(
+                                              Icons.check_circle,
+                                              color: Colors.green.shade700,
+                                              size: 24,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  shopName,
+                                                  style: const TextStyle(
+                                                    fontSize: 18,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
+                                                ),
+                                                const SizedBox(height: 4),
+                                                Text(
+                                                  'ID: ${orderId.substring(0, 8)}',
+                                                  style: TextStyle(
+                                                    color: Colors.grey[600],
+                                                    fontSize: 12,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(
+                                          colors: [Colors.green.shade400, Colors.green.shade600],
+                                        ),
+                                        borderRadius: BorderRadius.circular(20),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.green.withOpacity(0.3),
+                                            blurRadius: 4,
+                                            offset: const Offset(0, 2),
+                                          ),
+                                        ],
+                                      ),
+                                      child: const Text(
+                                        'BILLED',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                          letterSpacing: 0.5,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 16),
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey.shade50,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: Colors.grey.shade200),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              Icon(Icons.shopping_bag, size: 16, color: Colors.grey[600]),
+                                              const SizedBox(width: 6),
+                                              Text(
+                                                '$totalItems Items',
+                                                style: TextStyle(
+                                                  color: Colors.grey[700],
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          if (billedAt != null) ...[
+                                            const SizedBox(height: 6),
+                                            Row(
+                                              children: [
+                                                Icon(Icons.check_circle, size: 16, color: Colors.green[600]),
+                                                const SizedBox(width: 6),
+                                                Text(
+                                                  'Billed: ${DateFormat('dd MMM, hh:mm a').format(billedAt)}',
+                                                  style: TextStyle(
+                                                    color: Colors.grey[600],
+                                                    fontSize: 12,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                          if (createdAt != null) ...[
+                                            const SizedBox(height: 4),
+                                            Row(
+                                              children: [
+                                                Icon(Icons.access_time, size: 16, color: Colors.grey[600]),
+                                                const SizedBox(width: 6),
+                                                Text(
+                                                  'Ordered: ${DateFormat('dd MMM').format(createdAt)}',
+                                                  style: TextStyle(
+                                                    color: Colors.grey[600],
+                                                    fontSize: 12,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                        decoration: BoxDecoration(
+                                          color: Colors.green.shade50,
+                                          borderRadius: BorderRadius.circular(10),
+                                          border: Border.all(color: Colors.green.shade200),
+                                        ),
+                                        child: Text(
+                                          '₹${totalAmount.toStringAsFixed(2)}',
+                                          style: TextStyle(
                                             fontSize: 18,
                                             fontWeight: FontWeight.bold,
+                                            color: Colors.green.shade700,
                                           ),
                                         ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          'Order ID: ${orderId.substring(0, 8)}',
-                                          style: TextStyle(
-                                            color: Colors.grey[600],
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                    decoration: BoxDecoration(
-                                      color: Colors.green,
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: const Text(
-                                      'BILLED',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
                                       ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const Divider(height: 24),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'Items: $totalItems',
-                                        style: TextStyle(color: Colors.grey[600]),
-                                      ),
-                                      if (billedAt != null)
-                                        Text(
-                                          'Billed: ${DateFormat('dd MMM yyyy').format(billedAt)}',
-                                          style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                                        ),
-                                      if (createdAt != null)
-                                        Text(
-                                          'Ordered: ${DateFormat('dd MMM yyyy').format(createdAt)}',
-                                          style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                                        ),
                                     ],
                                   ),
-                                  Text(
-                                    '₹${totalAmount.toStringAsFixed(2)}',
-                                    style: const TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.green,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),

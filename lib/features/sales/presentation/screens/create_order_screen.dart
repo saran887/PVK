@@ -152,31 +152,111 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                               final item = entry.value;
                               return Card(
                                 margin: const EdgeInsets.only(bottom: 8),
-                                child: ListTile(
-                                  leading: CircleAvatar(
-                                    child: Text('${index + 1}'),
-                                  ),
-                                  title: Text(item['productName'] ?? 'Unknown'),
-                                  subtitle: Text(
-                                    'Qty: ${item['quantity']} × ₹${item['price']?.toStringAsFixed(2) ?? '0.00'}',
-                                  ),
-                                  trailing: Row(
-                                    mainAxisSize: MainAxisSize.min,
+                                elevation: 1,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(12),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Text(
-                                        '₹${((item['quantity'] ?? 0) * (item['price'] ?? 0)).toStringAsFixed(2)}',
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 16,
-                                        ),
+                                      Row(
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.all(8),
+                                            decoration: BoxDecoration(
+                                              color: Colors.blue.withOpacity(0.1),
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                            child: Text(
+                                              '${index + 1}',
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.blue,
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  item['productName'] ?? 'Unknown',
+                                                  style: const TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 15,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 4),
+                                                Text(
+                                                  '₹${item['price']?.toStringAsFixed(2) ?? '0.00'} per unit',
+                                                  style: TextStyle(
+                                                    fontSize: 12,
+                                                    color: Colors.grey[600],
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          IconButton(
+                                            icon: const Icon(Icons.edit, size: 20),
+                                            color: Colors.blue,
+                                            onPressed: () => _editOrderItem(index),
+                                            tooltip: 'Edit',
+                                          ),
+                                          IconButton(
+                                            icon: const Icon(Icons.delete, size: 20),
+                                            color: Colors.red,
+                                            onPressed: () {
+                                              setState(() {
+                                                _orderItems.removeAt(index);
+                                              });
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                const SnackBar(
+                                                  content: Text('Item removed'),
+                                                  duration: Duration(seconds: 1),
+                                                ),
+                                              );
+                                            },
+                                            tooltip: 'Delete',
+                                          ),
+                                        ],
                                       ),
-                                      IconButton(
-                                        icon: const Icon(Icons.delete, color: Colors.red),
-                                        onPressed: () {
-                                          setState(() {
-                                            _orderItems.removeAt(index);
-                                          });
-                                        },
+                                      const SizedBox(height: 8),
+                                      const Divider(height: 1),
+                                      const SizedBox(height: 8),
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              const Icon(Icons.shopping_cart, size: 16, color: Colors.grey),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                'Quantity: ${item['quantity']}',
+                                                style: TextStyle(
+                                                  fontSize: 13,
+                                                  color: Colors.grey[700],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                            decoration: BoxDecoration(
+                                              color: Colors.green.withOpacity(0.1),
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                            child: Text(
+                                              '₹${((item['quantity'] ?? 0) * (item['price'] ?? 0)).toStringAsFixed(2)}',
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 15,
+                                                color: Colors.green,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ],
                                   ),
@@ -283,6 +363,16 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
   }
 
   void _addOrderItem() async {
+    if (_selectedShopId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select a shop first'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
     final result = await Navigator.push<Map<String, dynamic>>(
       context,
       MaterialPageRoute(
@@ -295,7 +385,80 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
       setState(() {
         _orderItems.add(result);
       });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Product added to order'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 1),
+          ),
+        );
+      }
     }
+  }
+
+  void _editOrderItem(int index) {
+    final item = _orderItems[index];
+    final quantityController = TextEditingController(text: item['quantity'].toString());
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(item['productName'] ?? 'Edit Quantity'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '₹${item['price']?.toStringAsFixed(2) ?? '0.00'} per unit',
+              style: const TextStyle(fontSize: 14, color: Colors.grey),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: quantityController,
+              decoration: const InputDecoration(
+                labelText: 'Quantity',
+                prefixIcon: Icon(Icons.numbers),
+                border: OutlineInputBorder(),
+              ),
+              keyboardType: TextInputType.number,
+              autofocus: true,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final quantity = double.tryParse(quantityController.text);
+              if (quantity != null && quantity > 0) {
+                setState(() {
+                  _orderItems[index]['quantity'] = quantity;
+                });
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Quantity updated'),
+                    backgroundColor: Colors.green,
+                    duration: Duration(seconds: 1),
+                  ),
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Please enter valid quantity'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+            child: const Text('Update'),
+          ),
+        ],
+      ),
+    );
   }
 
   double _calculateTotal() {
@@ -316,9 +479,50 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
       return;
     }
 
+    // Confirm dialog
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirm Order'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Shop: $_selectedShopName'),
+            const SizedBox(height: 8),
+            Text('Total Items: ${_orderItems.length}'),
+            const SizedBox(height: 8),
+            Text(
+              'Total Amount: ₹${_calculateTotal().toStringAsFixed(2)}',
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                color: Colors.green,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Create Order'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
     setState(() => _isLoading = true);
 
     try {
+      final currentUser = ref.read(currentUserProvider).asData?.value;
+      final userId = ref.read(authRepositoryProvider).currentUser?.uid ?? '';
+      
       await FirebaseFirestore.instance.collection('orders').add({
         'shopId': _selectedShopId,
         'shopName': _selectedShopName,
@@ -327,25 +531,34 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
         'totalAmount': _calculateTotal(),
         'totalItems': _orderItems.length,
         'status': 'pending',
+        'createdBy': userId,
+        'createdByName': currentUser?.name ?? '',
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
       });
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Order created successfully!'),
+          SnackBar(
+            content: Row(
+              children: const [
+                Icon(Icons.check_circle, color: Colors.white),
+                SizedBox(width: 8),
+                Text('Order created successfully!'),
+              ],
+            ),
             backgroundColor: Colors.green,
           ),
         );
-        Navigator.pop(context);
+        Navigator.pop(context, true); // Return true to indicate success
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: $e'),
+            content: Text('Error creating order: $e'),
             backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
           ),
         );
       }

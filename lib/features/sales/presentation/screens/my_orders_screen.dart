@@ -4,17 +4,64 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../auth/providers/auth_provider.dart';
 import 'package:intl/intl.dart';
 
-class MyOrdersScreen extends ConsumerWidget {
+class MyOrdersScreen extends ConsumerStatefulWidget {
   const MyOrdersScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MyOrdersScreen> createState() => _MyOrdersScreenState();
+}
+
+class _MyOrdersScreenState extends ConsumerState<MyOrdersScreen> {
+  String _selectedFilter = 'all'; // all, pending, billed, delivered
+
+  @override
+  Widget build(BuildContext context) {
     final user = ref.watch(currentUserProvider).asData?.value;
     final userLocationId = user?.locationId ?? '';
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('My Orders'),
+        elevation: 0,
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(60),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _FilterChip(
+                    label: 'All',
+                    isSelected: _selectedFilter == 'all',
+                    onSelected: () => setState(() => _selectedFilter = 'all'),
+                  ),
+                  const SizedBox(width: 8),
+                  _FilterChip(
+                    label: 'Pending',
+                    isSelected: _selectedFilter == 'pending',
+                    onSelected: () => setState(() => _selectedFilter = 'pending'),
+                    color: Colors.orange,
+                  ),
+                  const SizedBox(width: 8),
+                  _FilterChip(
+                    label: 'Billed',
+                    isSelected: _selectedFilter == 'billed',
+                    onSelected: () => setState(() => _selectedFilter = 'billed'),
+                    color: Colors.purple,
+                  ),
+                  const SizedBox(width: 8),
+                  _FilterChip(
+                    label: 'Delivered',
+                    isSelected: _selectedFilter == 'delivered',
+                    onSelected: () => setState(() => _selectedFilter = 'delivered'),
+                    color: Colors.green,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: (userLocationId.isNotEmpty
@@ -26,7 +73,22 @@ class MyOrdersScreen extends ConsumerWidget {
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                  const SizedBox(height: 16),
+                  Text('Error: ${snapshot.error}'),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    onPressed: () => setState(() {}),
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Retry'),
+                  ),
+                ],
+              ),
+            );
           }
 
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -35,69 +97,91 @@ class MyOrdersScreen extends ConsumerWidget {
 
           var orders = snapshot.data?.docs ?? [];
 
-          // Orders are already filtered server-side by location when available.
+          // Filter by status
+          if (_selectedFilter != 'all') {
+            orders = orders.where((doc) {
+              final data = doc.data() as Map<String, dynamic>;
+              final status = (data['status'] ?? 'pending').toString().toLowerCase();
+              return status == _selectedFilter;
+            }).toList();
+          }
 
           if (orders.isEmpty) {
-            return const Center(
+            return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.receipt_long_outlined, size: 64, color: Colors.grey),
-                  SizedBox(height: 16),
-                  Text('No orders found', style: TextStyle(fontSize: 18, color: Colors.grey)),
-                  SizedBox(height: 8),
-                  Text('Create your first order to get started', style: TextStyle(color: Colors.grey)),
+                  Icon(
+                    Icons.receipt_long_outlined,
+                    size: 64,
+                    color: Colors.grey[400],
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    _selectedFilter == 'all' ? 'No orders found' : 'No $_selectedFilter orders',
+                    style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Create your first order to get started',
+                    style: TextStyle(color: Colors.grey[500]),
+                  ),
                 ],
               ),
             );
           }
 
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: orders.length,
-            itemBuilder: (context, index) {
-              final order = orders[index].data() as Map<String, dynamic>;
-              final orderId = orders[index].id;
-              final shopName = order['shopName'] ?? 'Unknown Shop';
-              final totalAmount = order['totalAmount'] ?? 0;
-              final totalItems = order['totalItems'] ?? 0;
-              final status = order['status'] ?? 'pending';
-              final createdAt = order['createdAt'] as Timestamp?;
-              final items = order['items'] as List<dynamic>? ?? [];
+          return RefreshIndicator(
+            onRefresh: () async {
+              await Future.delayed(const Duration(seconds: 1));
+              setState(() {});
+            },
+            child: ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: orders.length,
+              itemBuilder: (context, index) {
+                final order = orders[index].data() as Map<String, dynamic>;
+                final orderId = orders[index].id;
+                final shopName = order['shopName'] ?? 'Unknown Shop';
+                final totalAmount = order['totalAmount'] ?? 0;
+                final totalItems = order['totalItems'] ?? 0;
+                final status = order['status'] ?? 'pending';
+                final createdAt = order['createdAt'] as Timestamp?;
+                final items = order['items'] as List<dynamic>? ?? [];
 
-              String formattedDate = 'N/A';
-              if (createdAt != null) {
-                final date = createdAt.toDate();
-                formattedDate = DateFormat('MMM dd, yyyy - hh:mm a').format(date);
-              }
+                String formattedDate = 'N/A';
+                if (createdAt != null) {
+                  final date = createdAt.toDate();
+                  formattedDate = DateFormat('MMM dd, yyyy - hh:mm a').format(date);
+                }
 
-              Color statusColor;
-              IconData statusIcon;
-              switch (status.toLowerCase()) {
-                case 'pending':
-                  statusColor = Colors.orange;
-                  statusIcon = Icons.pending;
-                  break;
-                case 'confirmed':
-                  statusColor = Colors.blue;
-                  statusIcon = Icons.check_circle;
-                  break;
-                case 'billed':
-                  statusColor = Colors.purple;
-                  statusIcon = Icons.receipt;
-                  break;
-                case 'dispatched':
-                  statusColor = Colors.indigo;
-                  statusIcon = Icons.local_shipping;
-                  break;
-                case 'delivered':
-                  statusColor = Colors.green;
-                  statusIcon = Icons.done_all;
-                  break;
-                case 'cancelled':
-                  statusColor = Colors.red;
-                  statusIcon = Icons.cancel;
-                  break;
+                Color statusColor;
+                IconData statusIcon;
+                switch (status.toLowerCase()) {
+                  case 'pending':
+                    statusColor = Colors.orange;
+                    statusIcon = Icons.pending;
+                    break;
+                  case 'confirmed':
+                    statusColor = Colors.blue;
+                    statusIcon = Icons.check_circle;
+                    break;
+                  case 'billed':
+                    statusColor = Colors.purple;
+                    statusIcon = Icons.receipt;
+                    break;
+                  case 'dispatched':
+                    statusColor = Colors.indigo;
+                    statusIcon = Icons.local_shipping;
+                    break;
+                  case 'delivered':
+                    statusColor = Colors.green;
+                    statusIcon = Icons.done_all;
+                    break;
+                  case 'cancelled':
+                    statusColor = Colors.red;
+                    statusIcon = Icons.cancel;
+                    break;
                 default:
                   statusColor = Colors.grey;
                   statusIcon = Icons.info;
@@ -105,6 +189,8 @@ class MyOrdersScreen extends ConsumerWidget {
 
               return Card(
                 margin: const EdgeInsets.only(bottom: 14),
+                elevation: 2,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 child: InkWell(
                   onTap: () {
                     _showOrderDetails(context, orderId, order);
@@ -145,9 +231,9 @@ class MyOrdersScreen extends ConsumerWidget {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                               decoration: BoxDecoration(
-                                color: statusColor.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: statusColor),
+                                color: statusColor.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: statusColor, width: 1.5),
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
@@ -174,9 +260,11 @@ class MyOrdersScreen extends ConsumerWidget {
                           children: [
                             Icon(Icons.calendar_today, size: 14, color: Colors.grey[600]),
                             const SizedBox(width: 6),
-                            Text(
-                              formattedDate,
-                              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                            Expanded(
+                              child: Text(
+                                formattedDate,
+                                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                              ),
                             ),
                           ],
                         ),
@@ -192,25 +280,32 @@ class MyOrdersScreen extends ConsumerWidget {
                           ],
                         ),
                         const SizedBox(height: 12),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text(
-                              'Total Amount:',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.green.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'Total Amount:',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
-                            ),
-                            Text(
-                              '₹${totalAmount.toStringAsFixed(2)}',
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.green,
+                              Text(
+                                '₹${totalAmount.toStringAsFixed(2)}',
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.green,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ],
                     ),
@@ -218,9 +313,10 @@ class MyOrdersScreen extends ConsumerWidget {
                 ),
               );
             },
-          );
-        },
-      ),
+          ),
+        );
+      },
+    ),
     );
   }
 
@@ -360,27 +456,63 @@ class MyOrdersScreen extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  ...items.map((item) {
-                    final productName = item['productName'] ?? 'Unknown Product';
-                    final quantity = item['quantity'] ?? 0;
-                    final price = item['price'] ?? 0;
-                    final subtotal = quantity * price;
+                    ...items.map((item) {
+                      final productName = item['productName'] ?? 'Unknown Product';
+                      final quantity = item['quantity'] ?? 0;
+                      final price = item['price'] ?? 0;
+                      final subtotal = quantity * price;
 
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      child: ListTile(
-                        title: Text(productName),
-                        subtitle: Text('Qty: $quantity × ₹${price.toStringAsFixed(2)}'),
-                        trailing: Text(
-                          '₹${subtotal.toStringAsFixed(2)}',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        elevation: 1,
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.blue.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Icon(Icons.inventory_2, size: 20, color: Colors.blue),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      productName,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'Qty: $quantity × ₹${price.toStringAsFixed(2)}',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey[600],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Text(
+                                '₹${subtotal.toStringAsFixed(2)}',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                  color: Colors.green,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ),
-                    );
-                  }).toList(),
+                      );
+                    }).toList(),
                   const SizedBox(height: 16),
                   Card(
                     color: Colors.green[50],
@@ -413,6 +545,41 @@ class MyOrdersScreen extends ConsumerWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _FilterChip extends StatelessWidget {
+  final String label;
+  final bool isSelected;
+  final VoidCallback onSelected;
+  final Color? color;
+
+  const _FilterChip({
+    required this.label,
+    required this.isSelected,
+    required this.onSelected,
+    this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final chipColor = color ?? Theme.of(context).primaryColor;
+    
+    return FilterChip(
+      label: Text(label),
+      selected: isSelected,
+      onSelected: (_) => onSelected(),
+      selectedColor: chipColor.withOpacity(0.2),
+      checkmarkColor: chipColor,
+      labelStyle: TextStyle(
+        color: isSelected ? chipColor : Colors.grey[700],
+        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+      ),
+      side: BorderSide(
+        color: isSelected ? chipColor : Colors.grey[300]!,
+        width: isSelected ? 2 : 1,
       ),
     );
   }

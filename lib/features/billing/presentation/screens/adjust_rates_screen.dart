@@ -22,38 +22,69 @@ class _AdjustRatesScreenState extends State<AdjustRatesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[50],
       appBar: AppBar(
         title: const Text('Adjust Product Rates'),
+        elevation: 0,
+        backgroundColor: Colors.blue.shade700,
+        foregroundColor: Colors.white,
       ),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Search products...',
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: _searchQuery.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear),
-                        onPressed: () {
-                          setState(() {
-                            _searchController.clear();
-                            _searchQuery = '';
-                          });
-                        },
-                      )
-                    : null,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.blue.shade700,
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(30),
+                bottomRight: Radius.circular(30),
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Search products...',
+                    hintStyle: TextStyle(color: Colors.grey[400]),
+                    prefixIcon: Icon(Icons.search, color: Colors.blue.shade700),
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () {
+                              setState(() {
+                                _searchController.clear();
+                                _searchQuery = '';
+                              });
+                            },
+                          )
+                        : null,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide.none,
+                    ),
+                    filled: true,
+                    fillColor: Colors.white,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  ),
+                  onChanged: (value) {
+                    setState(() {
+                      _searchQuery = value.toLowerCase();
+                    });
+                  },
                 ),
               ),
-              onChanged: (value) {
-                setState(() {
-                  _searchQuery = value.toLowerCase();
-                });
-              },
             ),
           ),
           StreamBuilder<QuerySnapshot>(
@@ -64,7 +95,8 @@ class _AdjustRatesScreenState extends State<AdjustRatesScreen> {
               final categories = snapshot.data!.docs;
               if (categories.isEmpty) return const SizedBox();
 
-              return SizedBox(
+              return Container(
+                margin: const EdgeInsets.symmetric(vertical: 12),
                 height: 50,
                 child: ListView(
                   scrollDirection: Axis.horizontal,
@@ -72,7 +104,7 @@ class _AdjustRatesScreenState extends State<AdjustRatesScreen> {
                   children: [
                     Padding(
                       padding: const EdgeInsets.only(right: 8),
-                      child: ChoiceChip(
+                      child: FilterChip(
                         label: const Text('All'),
                         selected: _selectedCategory == null,
                         onSelected: (selected) {
@@ -80,6 +112,13 @@ class _AdjustRatesScreenState extends State<AdjustRatesScreen> {
                             _selectedCategory = null;
                           });
                         },
+                        backgroundColor: Colors.grey[200],
+                        selectedColor: Colors.blue.shade100,
+                        checkmarkColor: Colors.blue.shade700,
+                        labelStyle: TextStyle(
+                          color: _selectedCategory == null ? Colors.blue.shade700 : Colors.grey[700],
+                          fontWeight: _selectedCategory == null ? FontWeight.bold : FontWeight.normal,
+                        ),
                       ),
                     ),
                     ...categories.map((cat) {
@@ -87,7 +126,7 @@ class _AdjustRatesScreenState extends State<AdjustRatesScreen> {
                       final name = categoryName?['name'] ?? 'Unknown';
                       return Padding(
                         padding: const EdgeInsets.only(right: 8),
-                        child: ChoiceChip(
+                        child: FilterChip(
                           label: Text(name),
                           selected: _selectedCategory == name,
                           onSelected: (selected) {
@@ -95,6 +134,13 @@ class _AdjustRatesScreenState extends State<AdjustRatesScreen> {
                               _selectedCategory = selected ? name : null;
                             });
                           },
+                          backgroundColor: Colors.grey[200],
+                          selectedColor: Colors.blue.shade100,
+                          checkmarkColor: Colors.blue.shade700,
+                          labelStyle: TextStyle(
+                            color: _selectedCategory == name ? Colors.blue.shade700 : Colors.grey[700],
+                            fontWeight: _selectedCategory == name ? FontWeight.bold : FontWeight.normal,
+                          ),
                         ),
                       );
                     }).toList(),
@@ -103,7 +149,6 @@ class _AdjustRatesScreenState extends State<AdjustRatesScreen> {
               );
             },
           ),
-          const SizedBox(height: 8),
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
@@ -173,37 +218,113 @@ class _AdjustRatesScreenState extends State<AdjustRatesScreen> {
                     final category = product['category'] ?? '';
 
                     return Card(
+                      elevation: 2,
                       margin: const EdgeInsets.only(bottom: 12),
-                      child: ListTile(
-                        title: Text(name),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (customProductId.isNotEmpty)
-                              Text('ID: $customProductId', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
-                            if (category.isNotEmpty)
-                              Text(category, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
-                          ],
-                        ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              '₹${currentPrice.toStringAsFixed(2)}',
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.green,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: InkWell(
+                        onTap: () {
+                          _showEditPriceDialog(context, productId, name, currentPrice);
+                        },
+                        borderRadius: BorderRadius.circular(16),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [Colors.blue.shade300, Colors.blue.shade500],
+                                  ),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Icon(Icons.inventory_2, color: Colors.white, size: 28),
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                            IconButton(
-                              icon: const Icon(Icons.edit),
-                              onPressed: () {
-                                _showEditPriceDialog(context, productId, name, currentPrice);
-                              },
-                            ),
-                          ],
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      name,
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    if (customProductId.isNotEmpty)
+                                      Row(
+                                        children: [
+                                          Icon(Icons.qr_code, size: 14, color: Colors.grey[600]),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            customProductId,
+                                            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                                          ),
+                                        ],
+                                      ),
+                                    if (category.isNotEmpty)
+                                      Container(
+                                        margin: const EdgeInsets.only(top: 4),
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: Colors.blue.shade50,
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: Text(
+                                          category,
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            color: Colors.blue.shade700,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      color: Colors.green.shade50,
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(color: Colors.green.shade200),
+                                    ),
+                                    child: Text(
+                                      '₹${currentPrice.toStringAsFixed(2)}',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.green.shade700,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.blue.shade100,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: IconButton(
+                                      icon: Icon(Icons.edit, color: Colors.blue.shade700, size: 20),
+                                      onPressed: () {
+                                        _showEditPriceDialog(context, productId, name, currentPrice);
+                                      },
+                                      padding: const EdgeInsets.all(8),
+                                      constraints: const BoxConstraints(),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     );
@@ -223,21 +344,90 @@ class _AdjustRatesScreenState extends State<AdjustRatesScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Edit Price'),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.blue.shade300, Colors.blue.shade500],
+                ),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.edit, color: Colors.white, size: 24),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Edit Price',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(productName, style: const TextStyle(fontWeight: FontWeight.bold)),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.inventory_2, color: Colors.blue, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      productName,
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: 16),
-            Text('Current Price: ₹${currentPrice.toStringAsFixed(2)}'),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              child: Row(
+                children: [
+                  Text(
+                    'Current Price:',
+                    style: TextStyle(color: Colors.grey[700], fontSize: 14),
+                  ),
+                  const Spacer(),
+                  Text(
+                    '₹${currentPrice.toStringAsFixed(2)}',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                      color: Colors.green.shade700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: 16),
             TextField(
               controller: priceController,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'New Price',
-                prefixText: '₹ ',
-                border: OutlineInputBorder(),
+                prefixIcon: const Icon(Icons.currency_rupee),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                filled: true,
+                fillColor: Colors.white,
               ),
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               autofocus: true,
@@ -247,6 +437,9 @@ class _AdjustRatesScreenState extends State<AdjustRatesScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            ),
             child: const Text('Cancel'),
           ),
           ElevatedButton(
@@ -273,8 +466,18 @@ class _AdjustRatesScreenState extends State<AdjustRatesScreen> {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Price updated: ₹${currentPrice.toStringAsFixed(2)} → ₹${newPrice.toStringAsFixed(2)}'),
+                      content: Row(
+                        children: [
+                          const Icon(Icons.check_circle, color: Colors.white),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text('Price updated: ₹${currentPrice.toStringAsFixed(2)} → ₹${newPrice.toStringAsFixed(2)}'),
+                          ),
+                        ],
+                      ),
                       backgroundColor: Colors.green,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
                   );
                 }
@@ -290,7 +493,15 @@ class _AdjustRatesScreenState extends State<AdjustRatesScreen> {
                 }
               }
             },
-            child: const Text('Update'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green.shade600,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text('Update Price'),
           ),
         ],
       ),

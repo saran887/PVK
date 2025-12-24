@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:pdf/pdf.dart';
@@ -312,10 +313,13 @@ class BillGenerator {
                     );
                   }),
                   
-                  // Empty rows for spacing
-                  ...List.generate(5, (i) => pw.TableRow(
-                    children: List.generate(10, (j) => _buildTableCell('', height: 20)),
-                  )),
+                  // Empty rows for spacing (adjust based on number of items)
+                  ...List.generate(
+                    items.length >= 5 ? 0 : (5 - items.length), 
+                    (i) => pw.TableRow(
+                      children: List.generate(10, (j) => _buildTableCell('', height: 20)),
+                    )
+                  ),
                 ],
               ),
               
@@ -389,6 +393,7 @@ class BillGenerator {
       );
 
       try {
+        // Send WhatsApp summary message
         await _sendSummaryToWhatsApp(
           shopPhone: shopPhone,
           shopName: shopName,
@@ -398,16 +403,330 @@ class BillGenerator {
           subtotal: subtotal,
           fileName: fileName,
         );
+        
+        if (context.mounted) {
+          Navigator.of(context).pop(); // Close loading
+        }
       } catch (e) {
+        debugPrint('❌ Error sending WhatsApp summary: $e');
         if (context.mounted) {
           Navigator.of(context).pop(); // Close loading
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('❌ Error: $e'),
+              content: Text('❌ Error sending summary: $e'),
               backgroundColor: Colors.red,
+              duration: const Duration(seconds: 4),
             ),
           );
         }
+        return; // Stop here if summary fails
+      }
+
+      // Now save the PDF to device
+      try {
+        await _savePDFToDevice(
+          bytes,
+          fileName,
+          shopName,
+          context,
+        );
+      } catch (e) {
+        debugPrint('❌ Error saving PDF: $e');
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Summary sent, but PDF save failed: $e'),
+              backgroundColor: Colors.orange,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  static Future<void> _savePDFToDevice(
+    Uint8List bytes,
+    String fileName,
+    String shopName,
+    BuildContext context,
+  ) async {
+    debugPrint('💾 Starting PDF save to device...');
+    
+    try {
+      // Step 1: Request storage permission
+      debugPrint('📂 Requesting storage permissions...');
+      
+      if (Platform.isAndroid) {
+        // Request appropriate permission based on Android version
+        PermissionStatus storageStatus;
+        
+        // Try manageExternalStorage first (for Android 11+)
+        storageStatus = await Permission.manageExternalStorage.status;
+        debugPrint('📂 Manage external storage status: $storageStatus');
+        
+        if (!storageStatus.isGranted) {
+          storageStatus = await Permission.manageExternalStorage.request();
+          debugPrint('📂 Manage external storage request result: $storageStatus');
+        }
+        
+        // If still not granted, try regular storage permission
+        if (!storageStatus.isGranted) {
+          storageStatus = await Permission.storage.status;
+          debugPrint('📂 Storage permission status: $storageStatus');
+          
+          if (!storageStatus.isGranted) {
+            storageStatus = await Permission.storage.request();
+            debugPrint('📂 Storage permission request result: $storageStatus');
+          }
+        }
+        
+        // Check if we have any storage permission
+        final hasPermission = storageStatus.isGranted || 
+                             storageStatus.isLimited || 
+                             await Permission.storage.isGranted ||
+                             await Permission.manageExternalStorage.isGranted;
+        
+        if (!hasPermission) {
+          debugPrint('❌ No storage permissions granted');
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('❌ Storage permission required. Please grant permission in app settings.'),
+                backgroundColor: Colors.red,
+                action: SnackBarAction(
+                  label: 'Settings',
+                  textColor: Colors.white,
+                  onPressed: () => openAppSettings(),
+                ),
+              ),
+            );
+          }
+          return;
+        }
+      }
+
+      // Step 2: Save PDF to appropriate directory
+      Directory? directory;
+      String savedPath = '';
+      
+      if (Platform.isAndroid) {
+        // Try multiple directory options
+        List<Directory?> directoryOptions = [];
+        
+        // Option 1: Downloads directory
+        try {
+          final downloadsDir = Directory('/storage/emulated/0/Download');
+          if (await downloadsDir.exists()) {
+            directoryOptions.add(downloadsDir);
+          }
+        } catch (e) {
+          debugPrint('⚠️ Cannot access Downloads: $e');
+        }
+        
+        // Option 2: Documents directory
+        try {
+          final documentsDir = Directory('/storage/emulated/0/Documents');
+          if (await documentsDir.exists()) {
+            directoryOptions.add(documentsDir);
+          }
+        } catch (e) {
+          debugPrint('⚠️ Cannot access Documents: $e');
+        }
+        
+        // Option 3: External storage directory
+        try {
+          directoryOptions.add(await getExternalStorageDirectory());
+        } catch (e) {
+          debugPrint('⚠️ Cannot access external storage: $e');
+        }
+        
+        // Option 4: Application documents directory
+        try {
+          directoryOptions.add(await getApplicationDocumentsDirectory());
+        } catch (e) {
+          debugPrint('⚠️ Cannot access app documents: $e');
+        }
+        
+        // Try each directory until one works
+        for (final dir in directoryOptions) {
+          if (dir != null) {
+            try {
+              // Create BillPDFs subdirectory
+              final billsDir = Directory('${dir.path}/BillPDFs');
+              if (!await billsDir.exists()) {
+                await billsDir.create(recursive: true);
+              }
+              
+              // Try to write a test file
+              final testFile = File('${billsDir.path}/.test');
+              await testFile.writeAsString('test');
+              await testFile.delete();
+              
+              directory = dir;
+              debugPrint('✅ Using directory: ${dir.path}');
+              break;
+            } catch (e) {
+              debugPrint('⚠️ Cannot write to ${dir.path}: $e');
+              continue;
+            }
+          }
+        }
+      } else {
+        directory = await getApplicationDocumentsDirectory();
+        debugPrint('📂 Using documents directory: ${directory.path}');
+      }
+
+      if (directory == null) {
+        throw Exception('Could not find a writable directory to save file. Please check app permissions.');
+      }
+
+      // Create BillPDFs subdirectory if it doesn't exist
+      final billsDir = Directory('${directory.path}/BillPDFs');
+      if (!await billsDir.exists()) {
+        await billsDir.create(recursive: true);
+        debugPrint('📁 Created BillPDFs directory: ${billsDir.path}');
+      }
+
+      // Save the file
+      final permanentFile = File('${billsDir.path}/$fileName');
+      debugPrint('💾 Writing file to: ${permanentFile.path}');
+      await permanentFile.writeAsBytes(bytes, flush: true);
+      savedPath = permanentFile.path;
+      
+      // Verify file was saved
+      if (await permanentFile.exists()) {
+        final fileSize = await permanentFile.length();
+        debugPrint('✅ PDF saved successfully to: $savedPath (Size: $fileSize bytes)');
+        
+        // Verify file size is reasonable
+        if (fileSize < 100) {
+          throw Exception('File size too small ($fileSize bytes). File may be corrupted.');
+        }
+      } else {
+        throw Exception('File verification failed - file does not exist after writing');
+      }
+
+      // Show success message
+      if (context.mounted) {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.green, size: 28),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Bill Generated Successfully',
+                    style: TextStyle(fontSize: 18),
+                  ),
+                ),
+              ],
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.check_circle, color: Colors.green, size: 20),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'WhatsApp message sent',
+                          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  const Row(
+                    children: [
+                      Icon(Icons.check_circle, color: Colors.green, size: 20),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Bill saved to device:',
+                          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: SelectableText(
+                      savedPath,
+                      style: const TextStyle(fontSize: 11),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      const Icon(Icons.store, size: 18, color: Colors.blue),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Shop: $shopName',
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Icon(Icons.description, size: 18, color: Colors.grey),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          fileName,
+                          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      }
+    } catch (e, stackTrace) {
+      debugPrint('❌ Error in _savePDFToDevice: $e');
+      debugPrint('Stack trace: $stackTrace');
+      if (context.mounted) {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Row(
+              children: [
+                Icon(Icons.error, color: Colors.red, size: 28),
+                SizedBox(width: 8),
+                Text('Error'),
+              ],
+            ),
+            content: Text('Failed to save bill to device:\n$e\n\nPlease check app permissions in Settings.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
       }
     }
   }
@@ -421,6 +740,8 @@ class BillGenerator {
     required double subtotal,
     required String fileName,
   }) async {
+    debugPrint('📱 Sending WhatsApp summary to: $shopPhone');
+    
     final summary = StringBuffer()
       ..writeln('Hello $shopName, here is your order summary:')
       ..writeln('Total: ₹${netTotal.toStringAsFixed(2)} (Subtotal: ₹${subtotal.toStringAsFixed(2)}, GST: ₹${gstAmount.toStringAsFixed(2)})')
@@ -436,187 +757,17 @@ class BillGenerator {
     summary.writeln('\nThank you! (Ref: $fileName)');
 
     final normalized = _formatWhatsappNumber(shopPhone);
+    debugPrint('📱 Normalized WhatsApp number: $normalized');
 
-    await WhatsappShare.share(
-      phone: normalized,
-      text: summary.toString(),
-    );
-  }
-
-  static Future<void> _sendToWhatsAppAutomatically(
-    Uint8List bytes,
-    String fileName,
-    String phoneNumber,
-    String shopName,
-    BuildContext context,
-  ) async {
     try {
-      // Step 1: Request storage permission
-      final storageStatus = await Permission.storage.request();
-      final photosStatus = await Permission.photos.request();
-      
-      if (!storageStatus.isGranted && !photosStatus.isGranted) {
-        if (context.mounted) {
-          Navigator.of(context).pop(); // Close loading
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('❌ Storage permission denied. Cannot save bill.'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-        return;
-      }
-
-      // Step 2: Save PDF to Downloads folder for permanent storage
-      Directory? directory;
-      if (Platform.isAndroid) {
-        directory = Directory('/storage/emulated/0/Download');
-        if (!await directory.exists()) {
-          directory = await getExternalStorageDirectory();
-        }
-      } else {
-        directory = await getApplicationDocumentsDirectory();
-      }
-
-      final permanentFile = File('${directory!.path}/$fileName');
-      await permanentFile.writeAsBytes(bytes);
-
-      // Step 3: Also save to temporary directory for sharing
-      final tempDir = await getTemporaryDirectory();
-      final tempFile = File('${tempDir.path}/$fileName');
-      await tempFile.writeAsBytes(bytes);
-
-      // Step 4: Clean and format phone number from database
-      if (phoneNumber.trim().isEmpty) {
-        if (context.mounted) {
-          Navigator.of(context).pop(); // Close loading
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('❌ Shop phone number is missing. Please add a phone number to the shop.'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-        return;
-      }
-
-      final cleanPhone = phoneNumber.replaceAll(RegExp(r'[^0-9+]'), '');
-      final whatsappPhone = cleanPhone.startsWith('+') 
-          ? cleanPhone.substring(1) 
-          : cleanPhone.startsWith('91') 
-              ? cleanPhone 
-              : '91$cleanPhone';
-
-      if (context.mounted) {
-        Navigator.of(context).pop(); // Close loading
-      }
-
-      // Step 5: Share directly to WhatsApp with file attached and message prefilled
-      final message = 'Hello $shopName, your bill is generated and attached. Thank you.';
-      try {
-        await WhatsappShare.shareFile(
-          phone: whatsappPhone,
-          filePath: [tempFile.path],
-          text: message,
-        );
-
-        if (context.mounted) {
-          showDialog(
-            context: context,
-            builder: (context) => AlertDialog(
-              title: const Row(
-                children: [
-                  Icon(Icons.check_circle, color: Colors.green, size: 28),
-                  SizedBox(width: 8),
-                  Text('Bill Ready in WhatsApp'),
-                ],
-              ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('✅ Bill saved to:\n${permanentFile.path}'),
-                  const SizedBox(height: 12),
-                  Text('✅ WhatsApp chat opened for:\n$shopName (+$whatsappPhone)'),
-                  const SizedBox(height: 12),
-                  const Text(
-                    '📎 PDF attached and message prefilled. Tap send in WhatsApp.',
-                    style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green),
-                  ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('OK'),
-                ),
-              ],
-            ),
-          );
-        }
-      } catch (e) {
-        // Fallback to regular share if WhatsApp fails
-        final result = await Share.shareXFiles(
-          [XFile(tempFile.path)],
-          text: '$message\n\nSri Balaji Trading Company',
-          subject: 'Invoice - $fileName',
-        );
-
-        if (context.mounted) {
-          if (result.status == ShareResultStatus.success) {
-            showDialog(
-              context: context,
-              builder: (context) => AlertDialog(
-                title: const Row(
-                  children: [
-                    Icon(Icons.check_circle, color: Colors.green, size: 28),
-                    SizedBox(width: 8),
-                    Text('Bill Shared'),
-                  ],
-                ),
-                content: Text('Bill saved to:\n${permanentFile.path}'),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: const Text('OK'),
-                  ),
-                ],
-              ),
-            );
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Bill saved to: ${permanentFile.path}\nShare was cancelled.'),
-                duration: const Duration(seconds: 3),
-              ),
-            );
-          }
-        }
-      }
+      await WhatsappShare.share(
+        phone: normalized,
+        text: summary.toString(),
+      );
+      debugPrint('✅ WhatsApp summary sent successfully');
     } catch (e) {
-      if (context.mounted) {
-        Navigator.of(context).pop(); // Close loading if still open
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Row(
-              children: [
-                Icon(Icons.error, color: Colors.red, size: 28),
-                SizedBox(width: 8),
-                Text('Error'),
-              ],
-            ),
-            content: Text('Failed to generate or send bill:\n$e'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('OK'),
-              ),
-            ],
-          ),
-        );
-      }
+      debugPrint('❌ WhatsApp share failed: $e');
+      throw Exception('Failed to send WhatsApp summary: $e');
     }
   }
   

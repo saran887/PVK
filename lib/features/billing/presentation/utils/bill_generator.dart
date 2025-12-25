@@ -312,14 +312,6 @@ class BillGenerator {
                       ],
                     );
                   }),
-                  
-                  // Empty rows for spacing (adjust based on number of items)
-                  ...List.generate(
-                    items.length >= 5 ? 0 : (5 - items.length), 
-                    (i) => pw.TableRow(
-                      children: List.generate(10, (j) => _buildTableCell('', height: 20)),
-                    )
-                  ),
                 ],
               ),
               
@@ -392,6 +384,9 @@ class BillGenerator {
         ),
       );
 
+      // Track if WhatsApp was sent successfully
+      bool whatsappSuccess = false;
+      
       try {
         // Send WhatsApp summary message
         await _sendSummaryToWhatsApp(
@@ -403,6 +398,7 @@ class BillGenerator {
           subtotal: subtotal,
           fileName: fileName,
         );
+        whatsappSuccess = true;
         
         if (context.mounted) {
           Navigator.of(context).pop(); // Close loading
@@ -413,30 +409,33 @@ class BillGenerator {
           Navigator.of(context).pop(); // Close loading
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('❌ Error sending summary: $e'),
-              backgroundColor: Colors.red,
-              duration: const Duration(seconds: 4),
+              content: Text('⚠️ WhatsApp failed. Saving PDF anyway...'),
+              backgroundColor: Colors.orange,
+              duration: const Duration(seconds: 3),
             ),
           );
         }
-        return; // Stop here if summary fails
+        // Continue to save PDF even if WhatsApp fails
       }
 
-      // Now save the PDF to device
+      // Always save the PDF to device (regardless of WhatsApp status)
       try {
         await _savePDFToDevice(
           bytes,
           fileName,
           shopName,
           context,
+          whatsappSuccess: whatsappSuccess,
         );
       } catch (e) {
         debugPrint('❌ Error saving PDF: $e');
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Summary sent, but PDF save failed: $e'),
-              backgroundColor: Colors.orange,
+              content: Text(whatsappSuccess 
+                ? 'Summary sent, but PDF save failed: $e'
+                : '❌ Both WhatsApp and PDF save failed: $e'),
+              backgroundColor: Colors.red,
               duration: const Duration(seconds: 4),
             ),
           );
@@ -449,12 +448,103 @@ class BillGenerator {
     Uint8List bytes,
     String fileName,
     String shopName,
-    BuildContext context,
-  ) async {
+    BuildContext context, {
+    required bool whatsappSuccess,
+  }) async {
     debugPrint('💾 Starting PDF save to device...');
     
     try {
-      // Step 1: Request storage permission
+      // Handle web platform separately
+      if (kIsWeb) {
+        debugPrint('🌐 Web platform detected - using browser download');
+        
+        // For web, use the printing package's share functionality which triggers browser download
+        await Printing.sharePdf(
+          bytes: bytes,
+          filename: fileName,
+        );
+        
+        debugPrint('✅ PDF download initiated in browser');
+        
+        // Show success message for web
+        if (context.mounted) {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: Row(
+                children: [
+                  Icon(whatsappSuccess ? Icons.check_circle : Icons.warning, 
+                       color: whatsappSuccess ? Colors.green : Colors.orange, 
+                       size: 28),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      whatsappSuccess 
+                        ? 'Bill Generated Successfully'
+                        : 'Bill Downloaded (WhatsApp Not Available)',
+                      style: const TextStyle(fontSize: 18),
+                    ),
+                  ),
+                ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (!whatsappSuccess)
+                    const Row(
+                      children: [
+                        Icon(Icons.info, color: Colors.orange, size: 20),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'WhatsApp is not available on web',
+                            style: TextStyle(color: Colors.orange),
+                          ),
+                        ),
+                      ],
+                    ),
+                  if (!whatsappSuccess) const SizedBox(height: 12),
+                  const Row(
+                    children: [
+                      Icon(Icons.download, color: Colors.green, size: 20),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'PDF downloaded to browser',
+                          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Icon(Icons.description, size: 18, color: Colors.grey),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          fileName,
+                          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('OK'),
+                ),
+              ],
+            ),
+          );
+        }
+        return;
+      }
+      
+      // Step 1: Request storage permission (mobile only)
       debugPrint('📂 Requesting storage permissions...');
       
       if (Platform.isAndroid) {
@@ -612,14 +702,18 @@ class BillGenerator {
         showDialog(
           context: context,
           builder: (context) => AlertDialog(
-            title: const Row(
+            title: Row(
               children: [
-                Icon(Icons.check_circle, color: Colors.green, size: 28),
-                SizedBox(width: 8),
+                Icon(whatsappSuccess ? Icons.check_circle : Icons.warning, 
+                     color: whatsappSuccess ? Colors.green : Colors.orange, 
+                     size: 28),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Bill Generated Successfully',
-                    style: TextStyle(fontSize: 18),
+                    whatsappSuccess 
+                      ? 'Bill Generated Successfully'
+                      : 'Bill Saved (WhatsApp Failed)',
+                    style: const TextStyle(fontSize: 18),
                   ),
                 ),
               ],
@@ -629,14 +723,21 @@ class BillGenerator {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Row(
+                  Row(
                     children: [
-                      Icon(Icons.check_circle, color: Colors.green, size: 20),
-                      SizedBox(width: 8),
+                      Icon(whatsappSuccess ? Icons.check_circle : Icons.error, 
+                           color: whatsappSuccess ? Colors.green : Colors.red, 
+                           size: 20),
+                      const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'WhatsApp message sent',
-                          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green),
+                          whatsappSuccess 
+                            ? 'WhatsApp message sent'
+                            : 'WhatsApp message failed',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold, 
+                            color: whatsappSuccess ? Colors.green : Colors.red,
+                          ),
                         ),
                       ),
                     ],

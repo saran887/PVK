@@ -1,169 +1,569 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:go_router/go_router.dart';
 
-class ManageUsersScreen extends ConsumerWidget {
+// Helper functions for role colors and icons
+Color getRoleColor(String role) {
+  switch (role) {
+    case 'Owner':
+      return Colors.purple;
+    case 'Admin':
+      return Colors.blue;
+    case 'Sales':
+      return Colors.green;
+    case 'Billing':
+      return Colors.orange;
+    case 'Delivery':
+      return Colors.teal;
+    default:
+      return Colors.grey;
+  }
+}
+
+IconData getRoleIcon(String role) {
+  switch (role) {
+    case 'Owner':
+      return Icons.business_center;
+    case 'Admin':
+      return Icons.admin_panel_settings;
+    case 'Sales':
+      return Icons.point_of_sale;
+    case 'Billing':
+      return Icons.receipt;
+    case 'Delivery':
+      return Icons.local_shipping;
+    default:
+      return Icons.person;
+  }
+}
+
+class ManageUsersScreen extends ConsumerStatefulWidget {
   const ManageUsersScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ManageUsersScreen> createState() => _ManageUsersScreenState();
+}
+
+class _ManageUsersScreenState extends ConsumerState<ManageUsersScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  String _selectedRole = 'All';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Manage Users'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.person_add),
-            onPressed: () => context.push('/admin/add-person'),
+      backgroundColor: Colors.grey[100],
+      body: Column(
+        children: [
+          // Header with Green Gradient
+          Container(
+            padding: EdgeInsets.only(
+              top: MediaQuery.of(context).padding.top + 16,
+              left: 16,
+              right: 16,
+              bottom: 16,
+            ),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.green[700]!, Colors.green[500]!],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.green.withOpacity(0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                    const Text(
+                      'Manage Users',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                // Search Bar
+                TextField(
+                  controller: _searchController,
+                  onChanged: (value) {
+                    setState(() {
+                      _searchQuery = value.toLowerCase();
+                    });
+                  },
+                  decoration: InputDecoration(
+                    hintText: 'Search users...',
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    prefixIcon: const Icon(Icons.search, color: Colors.green),
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear, color: Colors.green),
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() {
+                                _searchQuery = '';
+                              });
+                            },
+                          )
+                        : null,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                // Role Filter Chips
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _buildRoleChip('All'),
+                      _buildRoleChip('Owner'),
+                      _buildRoleChip('Admin'),
+                      _buildRoleChip('Sales'),
+                      _buildRoleChip('Billing'),
+                      _buildRoleChip('Delivery'),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Users List
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('users')
+                  .orderBy('createdAt', descending: true)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                }
+
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                final users = snapshot.data!.docs.where((doc) {
+                  final data = doc.data() as Map<String, dynamic>;
+                  final name = (data['name'] as String? ?? '').toLowerCase();
+                  final email = (data['email'] as String? ?? '').toLowerCase();
+                  final phone = (data['phone'] as String? ?? '').toLowerCase();
+                  final role = data['role'] as String? ?? '';
+                  
+                  // Filter by role
+                  if (_selectedRole != 'All' && role != _selectedRole) {
+                    return false;
+                  }
+                  
+                  // Filter by search query
+                  return _searchQuery.isEmpty ||
+                      name.contains(_searchQuery) ||
+                      email.contains(_searchQuery) ||
+                      phone.contains(_searchQuery);
+                }).toList();
+
+                if (users.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.people_outline, size: 64, color: Colors.grey[400]),
+                        const SizedBox(height: 16),
+                        Text(
+                          _searchQuery.isEmpty ? 'No users yet' : 'No users found',
+                          style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                return ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: users.length,
+                  itemBuilder: (context, index) {
+                    final userDoc = users[index];
+                    final user = userDoc.data() as Map<String, dynamic>;
+                    final userId = userDoc.id;
+                    final name = user['name'] ?? 'Unknown';
+                    final email = user['email'] ?? '';
+                    final phone = user['phone'] ?? '';
+                    final role = user['role'] ?? 'Unknown';
+                    final isActive = user['isActive'] ?? true;
+                    final code = user['code'] ?? '';
+
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: InkWell(
+                        onTap: () => _showUserDetails(context, userId, user),
+                        borderRadius: BorderRadius.circular(12),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Row(
+                            children: [
+                              // Icon with gradient
+                              Container(
+                                width: 50,
+                                height: 50,
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      getRoleColor(role).withOpacity(0.7),
+                                      getRoleColor(role),
+                                    ],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Icon(
+                                  getRoleIcon(role),
+                                  color: Colors.white,
+                                  size: 28,
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              // User Info
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            name,
+                                            style: const TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                        // Role chip
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 4,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: getRoleColor(role).withOpacity(0.1),
+                                            borderRadius: BorderRadius.circular(8),
+                                            border: Border.all(
+                                              color: getRoleColor(role),
+                                              width: 1,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            role,
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold,
+                                              color: getRoleColor(role),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    if (email.isNotEmpty) ...[
+                                      const SizedBox(height: 4),
+                                      Row(
+                                        children: [
+                                          Icon(Icons.email, size: 14, color: Colors.grey[600]),
+                                          const SizedBox(width: 4),
+                                          Expanded(
+                                            child: Text(
+                                              email,
+                                              style: TextStyle(
+                                                fontSize: 14,
+                                                color: Colors.grey[600],
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                    if (phone.isNotEmpty) ...[
+                                      const SizedBox(height: 4),
+                                      Row(
+                                        children: [
+                                          Icon(Icons.phone, size: 14, color: Colors.grey[600]),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            phone,
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              color: Colors.grey[600],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                              // Status Badge
+                              Container(
+                                width: 12,
+                                height: 12,
+                                decoration: BoxDecoration(
+                                  color: isActive ? Colors.green : Colors.red,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Icon(Icons.chevron_right, color: Colors.grey[400]),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
           ),
         ],
       ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('users')
-            .orderBy('createdAt', descending: true)
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          }
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Add User - Coming soon!')),
+          );
+        },
+        backgroundColor: Colors.green,
+        icon: const Icon(Icons.add),
+        label: const Text('Add User'),
+      ),
+    );
+  }
 
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+  Widget _buildRoleChip(String role) {
+    final isSelected = _selectedRole == role;
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: FilterChip(
+        label: Text(role),
+        selected: isSelected,
+        onSelected: (selected) {
+          setState(() {
+            _selectedRole = role;
+          });
+        },
+        backgroundColor: Colors.white,
+        selectedColor: role == 'All' ? Colors.white : getRoleColor(role).withOpacity(0.2),
+        labelStyle: TextStyle(
+          color: isSelected
+              ? (role == 'All' ? Colors.green : getRoleColor(role))
+              : Colors.grey[700],
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+        ),
+        side: BorderSide(
+          color: isSelected
+              ? (role == 'All' ? Colors.green : getRoleColor(role))
+              : Colors.grey[300]!,
+          width: isSelected ? 2 : 1,
+        ),
+      ),
+    );
+  }
 
-          final users = snapshot.data?.docs ?? [];
-
-          if (users.isEmpty) {
-            return const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.people_outlined, size: 64, color: Colors.grey),
-                  SizedBox(height: 16),
-                  Text('No users found', style: TextStyle(fontSize: 18, color: Colors.grey)),
-                ],
+  void _showUserDetails(BuildContext context, String userId, Map<String, dynamic> user) {
+    final role = user['role'] ?? 'Unknown';
+    final isActive = user['isActive'] ?? true;
+    final name = user['name'] ?? 'Unknown';
+    
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        minChildSize: 0.5,
+        maxChildSize: 0.9,
+        builder: (context, scrollController) => Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            children: [
+              // Handle bar
+              Container(
+                margin: const EdgeInsets.symmetric(vertical: 12),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
-            );
-          }
-
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: users.length,
-            itemBuilder: (context, index) {
-              final user = users[index].data() as Map<String, dynamic>;
-              final userId = users[index].id.trim();
-              final name = user['name'] ?? 'Unknown';
-              final email = user['email'] ?? '';
-              final role = user['role'] ?? 'USER';
-              final phone = user['phone'] ?? '';
-              final code = user['code']?.toString() ?? '';
-              final isActive = user['isActive'] ?? true;
-
-              Color getRoleColor() {
-                switch (role.toLowerCase()) {
-                  case 'owner':
-                    return Colors.purple;
-                  case 'admin':
-                    return Colors.blue;
-                  case 'sales':
-                    return Colors.green;
-                  case 'billing':
-                    return Colors.orange;
-                  case 'delivery':
-                    return Colors.teal;
-                  default:
-                    return Colors.grey;
-                }
-              }
-
-              IconData getRoleIcon() {
-                switch (role.toLowerCase()) {
-                  case 'owner':
-                    return Icons.business_center;
-                  case 'admin':
-                    return Icons.admin_panel_settings;
-                  case 'sales':
-                    return Icons.shopping_cart;
-                  case 'billing':
-                    return Icons.receipt;
-                  case 'delivery':
-                    return Icons.local_shipping;
-                  default:
-                    return Icons.person;
-                }
-              }
-
-              return Card(
-                margin: const EdgeInsets.only(bottom: 12),
-                child: ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: Color.alphaBlend(getRoleColor().withAlpha((0.1 * 255).toInt()), Colors.white),
-                    child: Icon(getRoleIcon(), color: getRoleColor()),
-                  ),
-                  title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (email.isNotEmpty) Text('📧 $email'),
-                      if (phone.isNotEmpty) Text('📱 $phone'),
-                      if (code.isNotEmpty) Text('🔑 Login Code: $code'),
-                      const SizedBox(height: 4),
-                      Chip(
-                        label: Text(role, style: const TextStyle(fontSize: 12)),
-                        backgroundColor: Color.alphaBlend(getRoleColor().withAlpha((0.1 * 255).toInt()), Colors.white),
-                        labelStyle: TextStyle(
-                          color: getRoleColor(),
-                          fontWeight: FontWeight.bold,
-                        ),
-                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        padding: EdgeInsets.zero,
-                      ),
+              // Header
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      getRoleColor(role).withOpacity(0.7),
+                      getRoleColor(role),
                     ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
-                  isThreeLine: true,
-                  trailing: PopupMenuButton(
-                    itemBuilder: (context) => [
-                      PopupMenuItem(
-                        value: 'toggle',
-                        child: Row(
-                          children: [
-                            Icon(isActive ? Icons.toggle_on : Icons.toggle_off, size: 20),
-                            const SizedBox(width: 8),
-                            Text(isActive ? 'Deactivate' : 'Activate'),
-                          ],
-                        ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      const PopupMenuItem(
-                        value: 'edit',
-                        child: Row(
-                          children: [
-                            Icon(Icons.edit, size: 20),
-                            SizedBox(width: 8),
-                            Text('Edit'),
-                          ],
-                        ),
+                      child: Icon(getRoleIcon(role), color: Colors.white, size: 28),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            name,
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                          Text(
+                            role,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Colors.white70,
+                            ),
+                          ),
+                        ],
                       ),
-                      const PopupMenuItem(
-                        value: 'delete',
-                        child: Row(
-                          children: [
-                            Icon(Icons.delete, size: 20, color: Colors.red),
-                            SizedBox(width: 8),
-                            Text('Delete', style: TextStyle(color: Colors.red)),
-                          ],
+                    ),
+                  ],
+                ),
+              ),
+              // User Details
+              Expanded(
+                child: ListView(
+                  controller: scrollController,
+                  padding: const EdgeInsets.all(20),
+                  children: [
+                    if (user['email'] != null)
+                      _buildDetailRow(Icons.email, 'Email', user['email']),
+                    if (user['phone'] != null)
+                      _buildDetailRow(Icons.phone, 'Phone', user['phone']),
+                    if (user['code'] != null)
+                      _buildDetailRow(Icons.lock, 'Login Code', user['code']),
+                    _buildDetailRow(
+                      Icons.person,
+                      'Role',
+                      role,
+                      valueColor: getRoleColor(role),
+                    ),
+                    _buildDetailRow(
+                      isActive ? Icons.check_circle : Icons.cancel,
+                      'Status',
+                      isActive ? 'Active' : 'Inactive',
+                      valueColor: isActive ? Colors.green : Colors.red,
+                    ),
+                    if (user['shopId'] != null)
+                      _buildDetailRow(Icons.store, 'Shop ID', user['shopId']),
+                    const SizedBox(height: 20),
+                    // Action Buttons
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Edit User - Coming soon!')),
+                              );
+                            },
+                            icon: const Icon(Icons.edit),
+                            label: const Text('Edit'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: getRoleColor(role),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
-                    ],
-                    onSelected: (value) async {
-                      if (value == 'toggle') {
-                        await FirebaseFirestore.instance.collection('users').doc(userId).update({
-                          'isActive': !isActive,
-                          'updatedAt': FieldValue.serverTimestamp(),
-                        });
-                      } else if (value == 'edit') {
-                        context.push('/admin/edit-person/$userId');
-                      } else if (value == 'delete') {
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () async {
+                              await FirebaseFirestore.instance
+                                  .collection('users')
+                                  .doc(userId)
+                                  .update({
+                                'isActive': !isActive,
+                                'updatedAt': FieldValue.serverTimestamp(),
+                              });
+                              if (context.mounted) {
+                                Navigator.pop(context);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                        'User ${!isActive ? "activated" : "deactivated"}'),
+                                    backgroundColor: Colors.green,
+                                  ),
+                                );
+                              }
+                            },
+                            icon: Icon(isActive ? Icons.toggle_off : Icons.toggle_on),
+                            label: Text(isActive ? 'Deactivate' : 'Activate'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: isActive ? Colors.orange : Colors.green,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    ElevatedButton.icon(
+                      onPressed: () async {
                         final confirm = await showDialog<bool>(
                           context: context,
                           builder: (context) => AlertDialog(
@@ -176,7 +576,9 @@ class ManageUsersScreen extends ConsumerWidget {
                               ),
                               TextButton(
                                 onPressed: () => Navigator.pop(context, true),
-                                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                                style: TextButton.styleFrom(
+                                  foregroundColor: Colors.red,
+                                ),
                                 child: const Text('Delete'),
                               ),
                             ],
@@ -184,25 +586,87 @@ class ManageUsersScreen extends ConsumerWidget {
                         );
 
                         if (confirm == true) {
-                          await FirebaseFirestore.instance.collection('users').doc(userId).delete();
+                          await FirebaseFirestore.instance
+                              .collection('users')
+                              .doc(userId)
+                              .delete();
                           if (context.mounted) {
+                            Navigator.pop(context);
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('$name deleted'), backgroundColor: Colors.green),
+                              SnackBar(
+                                content: Text('$name deleted'),
+                                backgroundColor: Colors.green,
+                              ),
                             );
                           }
                         }
-                      } else if (value == 'edit') {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Edit user - Coming soon!')),
-                        );
-                      }
-                    },
+                      },
+                      icon: const Icon(Icons.delete),
+                      label: const Text('Delete User'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(
+    IconData icon,
+    String label,
+    String value, {
+    Color? valueColor,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.green[50],
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, size: 20, color: Colors.green),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
-              );
-            },
-          );
-        },
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: valueColor ?? Colors.black87,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -238,11 +238,46 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
           StreamBuilder<QuerySnapshot>(
             stream: FirebaseFirestore.instance.collection('orders').snapshots(),
             builder: (context, snapshot) {
+              // Check for errors in orders stream
+              if (snapshot.hasError) {
+                return Card(
+                  color: Colors.red[50],
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Text('Error loading orders: ${snapshot.error}'),
+                  ),
+                );
+              }
+              
               return StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance.collection('products').snapshots(),
                 builder: (context, productsSnapshot) {
+                  // Check for errors in products stream
+                  if (productsSnapshot.hasError) {
+                    return Card(
+                      color: Colors.red[50],
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Text('Error loading products: ${productsSnapshot.error}'),
+                      ),
+                    );
+                  }
+                  
+                  // Show loading state
                   if (!snapshot.hasData || !productsSnapshot.hasData) {
-                    return const Center(child: CircularProgressIndicator());
+                    return const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(32),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            CircularProgressIndicator(),
+                            SizedBox(height: 16),
+                            Text('Loading data...'),
+                          ],
+                        ),
+                      ),
+                    );
                   }
 
                   final allOrders = snapshot.data!.docs;
@@ -447,8 +482,46 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance.collection('orders').snapshots(),
       builder: (context, snapshot) {
+        // Check for errors
+        if (snapshot.hasError) {
+          return Card(
+            color: Colors.red[50],
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Center(
+                child: Column(
+                  children: [
+                    Icon(Icons.error_outline, size: 48, color: Colors.red[300]),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Error loading products: ${snapshot.error}',
+                      style: TextStyle(color: Colors.red[700]),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
+        
+        // Show loading state
         if (!snapshot.hasData) {
-          return const Card(child: Padding(padding: EdgeInsets.all(20), child: Center(child: CircularProgressIndicator())));
+          return Card(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const CircularProgressIndicator(),
+                    const SizedBox(height: 16),
+                    Text('Loading products...', style: TextStyle(color: Colors.grey[600])),
+                  ],
+                ),
+              ),
+            ),
+          );
         }
 
         final allOrders = snapshot.data!.docs;
@@ -569,8 +642,47 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
           .orderBy('createdAt', descending: true)
           .snapshots(),
       builder: (context, snapshot) {
+        // Check for errors
+        if (snapshot.hasError) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.error_outline, size: 64, color: Colors.red[300]),
+                const SizedBox(height: 16),
+                Text(
+                  'Error loading orders',
+                  style: TextStyle(fontSize: 18, color: Colors.red[700]),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '${snapshot.error}',
+                  style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton.icon(
+                  onPressed: () => setState(() {}),
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Retry'),
+                ),
+              ],
+            ),
+          );
+        }
+        
+        // Show loading state
         if (!snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Loading orders...'),
+              ],
+            ),
+          );
         }
 
         final allOrders = snapshot.data!.docs;
@@ -820,8 +932,47 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance.collection('users').snapshots(),
       builder: (context, snapshot) {
+        // Check for errors
+        if (snapshot.hasError) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.error_outline, size: 64, color: Colors.red[300]),
+                const SizedBox(height: 16),
+                Text(
+                  'Error loading users',
+                  style: TextStyle(fontSize: 18, color: Colors.red[700]),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '${snapshot.error}',
+                  style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton.icon(
+                  onPressed: () => setState(() {}),
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Retry'),
+                ),
+              ],
+            ),
+          );
+        }
+        
+        // Show loading state
         if (!snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Loading users...'),
+              ],
+            ),
+          );
         }
 
         // Filter for Sales and Delivery roles only
@@ -1083,8 +1234,47 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance.collection('shops').snapshots(),
       builder: (context, snapshot) {
+        // Check for errors
+        if (snapshot.hasError) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.error_outline, size: 64, color: Colors.red[300]),
+                const SizedBox(height: 16),
+                Text(
+                  'Error loading shops',
+                  style: TextStyle(fontSize: 18, color: Colors.red[700]),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '${snapshot.error}',
+                  style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton.icon(
+                  onPressed: () => setState(() {}),
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Retry'),
+                ),
+              ],
+            ),
+          );
+        }
+        
+        // Show loading state
         if (!snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Loading shops...'),
+              ],
+            ),
+          );
         }
 
         final shops = snapshot.data!.docs;

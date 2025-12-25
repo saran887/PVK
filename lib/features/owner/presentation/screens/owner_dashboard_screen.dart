@@ -12,70 +12,172 @@ class OwnerDashboardScreen extends ConsumerWidget {
     final user = ref.watch(currentUserProvider).asData?.value;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Owner Dashboard'),
-        automaticallyImplyLeading: false,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () async {
-              await ref.read(authRepositoryProvider).signOut();
-            },
-          ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Welcome Card
-            Card(
-              elevation: 2,
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 30,
-                      backgroundColor: Color.alphaBlend(Colors.purple.withAlpha((0.1 * 255).toInt()), Colors.white),
-                      child: const Icon(Icons.business_center, size: 30, color: Colors.purple),
+      backgroundColor: Colors.grey[50],
+      body: CustomScrollView(
+        slivers: [
+          // Modern App Bar
+          SliverAppBar(
+            expandedHeight: 160,
+            floating: false,
+            pinned: true,
+            automaticallyImplyLeading: false,
+            flexibleSpace: FlexibleSpaceBar(
+              background: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.purple[700]!, Colors.purple[500]!],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+                child: SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(
+                                Icons.business_center_rounded,
+                                color: Colors.white,
+                                size: 32,
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Welcome back,',
+                                    style: TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                  Text(
+                                    user?.name ?? 'Owner',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Welcome,', style: Theme.of(context).textTheme.bodySmall),
-                          Text(user?.name ?? 'Owner', style: Theme.of(context).textTheme.titleLarge),
-                          Text(user?.email ?? '', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey)),
-                        ],
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
-            const SizedBox(height: 24),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.notifications_outlined, color: Colors.white),
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Notifications - Coming Soon!')),
+                  );
+                },
+              ),
+              IconButton(
+                icon: const Icon(Icons.logout, color: Colors.white),
+                onPressed: () async {
+                  await ref.read(authRepositoryProvider).signOut();
+                },
+              ),
+            ],
+          ),
 
-            // Business Overview Section
-            Text('Business Overview', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 12),
-            _buildOverviewStats(),
-            const SizedBox(height: 24),
+          // Dashboard Content
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Business Overview Section
+                  const Text(
+                    'Business Overview',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildOverviewStats(),
+                  const SizedBox(height: 24),
 
-            // Quick Actions Section
-            Text('Management', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 12),
-            _buildManagementGrid(context),
-            const SizedBox(height: 24),
+                  // Management Section
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Management',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.purple[50],
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: Colors.purple[200]!, width: 1),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.business, size: 14, color: Colors.purple[700]),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Owner',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.purple[700],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  _buildManagementGrid(context),
+                  const SizedBox(height: 24),
 
-            // Reports & Analytics Section
-            Text('Reports & Analytics', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 12),
-            _buildReportsGrid(context),
-          ],
-        ),
+                  // Reports & Analytics Section
+                  const Text(
+                    'Reports & Analytics',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildReportsGrid(context),
+                  const SizedBox(height: 80),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -147,35 +249,53 @@ class OwnerDashboardScreen extends ConsumerWidget {
           crossAxisCount: 2,
           mainAxisSpacing: 12,
           crossAxisSpacing: 12,
-          childAspectRatio: 1.2,
+          childAspectRatio: 0.90,
           children: [
-            _StatCard(
-              icon: Icons.currency_rupee,
+            _EnhancedStatCard(
+              icon: Icons.currency_rupee_rounded,
               title: 'Total Revenue',
               value: '₹${(totalRevenue / 1000).toStringAsFixed(1)}K',
-              color: Colors.green,
               subtitle: 'All time',
+              gradient: LinearGradient(
+                colors: [Colors.green[400]!, Colors.green[600]!],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
             ),
-            _StatCard(
-              icon: Icons.today,
+            _EnhancedStatCard(
+              icon: Icons.today_rounded,
               title: 'Today\'s Revenue',
               value: '₹${todayRevenue.toStringAsFixed(0)}',
-              color: Colors.blue,
               subtitle: '$todayOrders orders',
+              gradient: LinearGradient(
+                colors: [Colors.blue[400]!, Colors.blue[600]!],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
             ),
-            _StatCard(
-              icon: Icons.pending_actions,
+            _EnhancedStatCard(
+              icon: Icons.pending_actions_rounded,
               title: 'Pending Payments',
               value: '₹${(pendingPayments / 1000).toStringAsFixed(1)}K',
-              color: Colors.orange,
               subtitle: 'Outstanding',
+              gradient: LinearGradient(
+                colors: [Colors.orange[400]!, Colors.orange[600]!],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
             ),
-            _StatCard(
-              icon: Icons.warning_amber,
+            _EnhancedStatCard(
+              icon: Icons.warning_amber_rounded,
               title: 'Low Stock Alert',
               value: lowStockCount.toString(),
-              color: lowStockCount > 0 ? Colors.red : Colors.grey,
               subtitle: lowStockCount > 0 ? 'Items < 10' : 'All stocked',
+              gradient: LinearGradient(
+                colors: lowStockCount > 0 
+                    ? [Colors.red[400]!, Colors.red[600]!]
+                    : [Colors.grey[400]!, Colors.grey[600]!],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
             ),
           ],
         );
@@ -190,30 +310,50 @@ class OwnerDashboardScreen extends ConsumerWidget {
       crossAxisCount: 2,
       mainAxisSpacing: 12,
       crossAxisSpacing: 12,
-      childAspectRatio: 1.3,
+      childAspectRatio: 1.0,
       children: [
-        _QuickActionCard(
-          icon: Icons.people_alt,
+        _ColorfulActionCard(
+          icon: Icons.people_rounded,
           title: 'User Analytics',
-          color: Colors.blue,
+          subtitle: 'View team performance',
+          gradient: LinearGradient(
+            colors: [Colors.blue[400]!, Colors.blue[600]!],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
           onTap: () => GoRouter.of(context).push('/owner/users'),
         ),
-        _QuickActionCard(
-          icon: Icons.store_mall_directory,
+        _ColorfulActionCard(
+          icon: Icons.store_mall_directory_rounded,
           title: 'Shop Performance',
-          color: Colors.green,
+          subtitle: 'Track shop metrics',
+          gradient: LinearGradient(
+            colors: [Colors.green[400]!, Colors.green[600]!],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
           onTap: () => GoRouter.of(context).push('/owner/shops'),
         ),
-        _QuickActionCard(
-          icon: Icons.inventory_2,
+        _ColorfulActionCard(
+          icon: Icons.inventory_2_rounded,
           title: 'Product Insights',
-          color: Colors.orange,
+          subtitle: 'Inventory analysis',
+          gradient: LinearGradient(
+            colors: [Colors.orange[400]!, Colors.orange[600]!],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
           onTap: () => GoRouter.of(context).push('/owner/products'),
         ),
-        _QuickActionCard(
-          icon: Icons.account_balance_wallet,
+        _ColorfulActionCard(
+          icon: Icons.account_balance_wallet_rounded,
           title: 'Salary Management',
-          color: Colors.purple,
+          subtitle: 'Payroll overview',
+          gradient: LinearGradient(
+            colors: [Colors.purple[400]!, Colors.purple[600]!],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
           onTap: () => GoRouter.of(context).push('/owner/salary'),
         ),
       ],
@@ -227,30 +367,50 @@ class OwnerDashboardScreen extends ConsumerWidget {
       crossAxisCount: 2,
       mainAxisSpacing: 12,
       crossAxisSpacing: 12,
-      childAspectRatio: 1.3,
+      childAspectRatio: 1.0,
       children: [
-        _QuickActionCard(
-          icon: Icons.analytics,
+        _ColorfulActionCard(
+          icon: Icons.analytics_rounded,
           title: 'Business Analytics',
-          color: Colors.teal,
+          subtitle: 'Sales & revenue insights',
+          gradient: LinearGradient(
+            colors: [Colors.teal[400]!, Colors.teal[600]!],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
           onTap: () => GoRouter.of(context).push('/owner/analytics'),
         ),
-        _QuickActionCard(
-          icon: Icons.receipt_long,
+        _ColorfulActionCard(
+          icon: Icons.receipt_long_rounded,
           title: 'Expenses',
-          color: Colors.indigo,
+          subtitle: 'Track spending',
+          gradient: LinearGradient(
+            colors: [Colors.indigo[400]!, Colors.indigo[600]!],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
           onTap: () => GoRouter.of(context).push('/owner/expenses'),
         ),
-        _QuickActionCard(
-          icon: Icons.person_add,
+        _ColorfulActionCard(
+          icon: Icons.person_add_rounded,
           title: 'Add User',
-          color: Colors.cyan,
+          subtitle: 'Create new account',
+          gradient: LinearGradient(
+            colors: [Colors.cyan[400]!, Colors.cyan[600]!],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
           onTap: () => GoRouter.of(context).push('/admin/add-person'),
         ),
-        _QuickActionCard(
-          icon: Icons.add_business,
+        _ColorfulActionCard(
+          icon: Icons.add_business_rounded,
           title: 'Add Shop',
-          color: Colors.lime,
+          subtitle: 'Register new shop',
+          gradient: LinearGradient(
+            colors: [Colors.lightGreen[400]!, Colors.lightGreen[600]!],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
           onTap: () => GoRouter.of(context).push('/admin/add-shop'),
         ),
       ],
@@ -263,110 +423,153 @@ class OwnerDashboardScreen extends ConsumerWidget {
   }
 }
 
-// Statistics Card Widget
-class _StatCard extends StatelessWidget {
+// Enhanced Statistics Card with gradient background
+class _EnhancedStatCard extends StatelessWidget {
   final IconData icon;
   final String title;
   final String value;
-  final Color color;
   final String subtitle;
+  final Gradient gradient;
 
-  const _StatCard({
+  const _EnhancedStatCard({
     required this.icon,
     required this.title,
     required this.value,
-    required this.color,
-    this.subtitle = '',
+    required this.subtitle,
+    required this.gradient,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(icon, size: 32, color: color),
-                const Spacer(),
-                Text(
-                  value,
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: color,
-                  ),
-                ),
-              ],
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: gradient,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(10),
             ),
-            const SizedBox(height: 8),
-            Text(
-              title,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Colors.grey[600],
-              ),
+            child: Icon(icon, size: 24, color: Colors.white),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
             ),
-            if (subtitle.isNotEmpty)
-              Text(
-                subtitle,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.grey[500],
-                  fontSize: 10,
-                ),
-              ),
-          ],
-        ),
+          ),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 12,
+              color: Colors.white70,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          Text(
+            subtitle,
+            style: const TextStyle(
+              fontSize: 10,
+              color: Colors.white60,
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-// Quick Action Card Widget
-class _QuickActionCard extends StatelessWidget {
+// Colorful Action Card with gradient background
+class _ColorfulActionCard extends StatelessWidget {
   final IconData icon;
   final String title;
-  final Color color;
+  final String subtitle;
+  final Gradient gradient;
   final VoidCallback onTap;
 
-  const _QuickActionCard({
+  const _ColorfulActionCard({
     required this.icon,
     required this.title,
-    required this.color,
+    required this.subtitle,
+    required this.gradient,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 2,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
+    return Container(
+      decoration: BoxDecoration(
+        gradient: gradient,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.15),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          splashColor: Colors.white.withOpacity(0.2),
+          highlightColor: Colors.white.withOpacity(0.1),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.25),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Icon(icon, size: 36, color: Colors.white),
                 ),
-                child: Icon(icon, size: 36, color: color),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                title,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
+                const SizedBox(height: 16),
+                Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 6),
+                Text(
+                  subtitle,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Colors.white70,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

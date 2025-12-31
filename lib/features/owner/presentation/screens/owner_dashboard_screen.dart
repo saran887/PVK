@@ -12,79 +12,68 @@ class OwnerDashboardScreen extends ConsumerWidget {
     final user = ref.watch(currentUserProvider).asData?.value;
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: Colors.white,
       body: CustomScrollView(
         slivers: [
           // Modern App Bar
           SliverAppBar(
-            expandedHeight: 160,
+            expandedHeight: 140,
             floating: false,
             pinned: true,
             automaticallyImplyLeading: false,
+            backgroundColor: Colors.white,
             flexibleSpace: FlexibleSpaceBar(
-              background: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Colors.purple[700]!, Colors.purple[500]!],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                ),
-                child: SafeArea(
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Icon(
-                                Icons.business_center_rounded,
-                                color: Colors.white,
-                                size: 32,
-                              ),
+              background: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[100],
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    'Welcome back,',
-                                    style: TextStyle(
-                                      color: Colors.white70,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                  Text(
-                                    user?.name ?? 'Owner',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                            child: const Icon(
+                              Icons.business_center_rounded,
+                              color: Colors.black87,
+                              size: 28,
                             ),
-                          ],
-                        ),
-                      ],
-                    ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Welcome back,',
+                                  style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                                ),
+                                Text(
+                                  user?.name ?? 'Owner',
+                                  style: const TextStyle(
+                                    color: Colors.black87,
+                                    fontSize: 21,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
               ),
             ),
             actions: [
               IconButton(
-                icon: const Icon(Icons.notifications_outlined, color: Colors.white),
+                icon: const Icon(Icons.notifications_outlined, color: Colors.black87),
                 onPressed: () {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Notifications - Coming Soon!')),
@@ -92,7 +81,7 @@ class OwnerDashboardScreen extends ConsumerWidget {
                 },
               ),
               IconButton(
-                icon: const Icon(Icons.logout, color: Colors.white),
+                icon: const Icon(Icons.logout, color: Colors.black87),
                 onPressed: () async {
                   await ref.read(authRepositoryProvider).signOut();
                 },
@@ -249,7 +238,7 @@ class OwnerDashboardScreen extends ConsumerWidget {
           crossAxisCount: 2,
           mainAxisSpacing: 12,
           crossAxisSpacing: 12,
-          childAspectRatio: 0.90,
+          childAspectRatio: 0.80,
           children: [
             _EnhancedStatCard(
               icon: Icons.currency_rupee_rounded,

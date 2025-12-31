@@ -24,12 +24,12 @@ class _ManageProductsScreenState extends ConsumerState<ManageProductsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text('Manage Products'),
         elevation: 0,
-        backgroundColor: Colors.indigo.shade700,
-        foregroundColor: Colors.white,
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
         actions: [
           IconButton(
             icon: const Icon(Icons.add_shopping_cart),
@@ -41,33 +41,21 @@ class _ManageProductsScreenState extends ConsumerState<ManageProductsScreen> {
         children: [
           // Search Bar
           Container(
-            decoration: BoxDecoration(
-              color: Colors.indigo.shade700,
-              borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(30),
-                bottomRight: Radius.circular(30),
-              ),
-            ),
+            color: Colors.white,
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
               child: Container(
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
+                  color: Colors.grey[50],
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: Colors.grey[200]!),
                 ),
                 child: TextField(
                   controller: _searchController,
                   decoration: InputDecoration(
                     hintText: 'Search products...',
-                    hintStyle: TextStyle(color: Colors.grey[400]),
-                    prefixIcon: Icon(Icons.search, color: Colors.indigo.shade700),
+                    hintStyle: TextStyle(color: Colors.grey[500]),
+                    prefixIcon: const Icon(Icons.search, color: Colors.black87),
                     suffixIcon: _searchQuery.isNotEmpty
                         ? IconButton(
                             icon: const Icon(Icons.clear),
@@ -80,7 +68,7 @@ class _ManageProductsScreenState extends ConsumerState<ManageProductsScreen> {
                           )
                         : null,
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(14),
                       borderSide: BorderSide.none,
                     ),
                     filled: true,
@@ -123,12 +111,12 @@ class _ManageProductsScreenState extends ConsumerState<ManageProductsScreen> {
                             _selectedCategory = null;
                           });
                         },
-                        backgroundColor: Colors.grey[200],
-                        selectedColor: Colors.indigo.shade100,
-                        checkmarkColor: Colors.indigo.shade700,
+                        backgroundColor: Colors.grey[100],
+                        selectedColor: Colors.grey[200],
+                        checkmarkColor: Colors.black,
                         labelStyle: TextStyle(
-                          color: _selectedCategory == null ? Colors.indigo.shade700 : Colors.grey[700],
-                          fontWeight: _selectedCategory == null ? FontWeight.bold : FontWeight.normal,
+                          color: Colors.black87,
+                          fontWeight: _selectedCategory == null ? FontWeight.w700 : FontWeight.w500,
                         ),
                       ),
                     ),
@@ -145,12 +133,12 @@ class _ManageProductsScreenState extends ConsumerState<ManageProductsScreen> {
                               _selectedCategory = selected ? name : null;
                             });
                           },
-                          backgroundColor: Colors.grey[200],
-                          selectedColor: Colors.indigo.shade100,
-                          checkmarkColor: Colors.indigo.shade700,
+                          backgroundColor: Colors.grey[100],
+                          selectedColor: Colors.grey[200],
+                          checkmarkColor: Colors.black,
                           labelStyle: TextStyle(
-                            color: _selectedCategory == name ? Colors.indigo.shade700 : Colors.grey[700],
-                            fontWeight: _selectedCategory == name ? FontWeight.bold : FontWeight.normal,
+                            color: Colors.black87,
+                            fontWeight: _selectedCategory == name ? FontWeight.w700 : FontWeight.w500,
                           ),
                         ),
                       );
@@ -236,10 +224,11 @@ class _ManageProductsScreenState extends ConsumerState<ManageProductsScreen> {
                     final isActive = product['isActive'] ?? true;
 
                     return Card(
-                      elevation: 2,
+                      elevation: 0,
                       margin: const EdgeInsets.only(bottom: 12),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
+                        side: BorderSide(color: Colors.grey[200]!),
                       ),
                       child: InkWell(
                         onTap: () {
@@ -253,12 +242,10 @@ class _ManageProductsScreenState extends ConsumerState<ManageProductsScreen> {
                               Container(
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [Colors.indigo.shade300, Colors.indigo.shade500],
-                                  ),
+                                  color: Colors.grey[100],
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                child: const Icon(Icons.inventory_2, color: Colors.white, size: 28),
+                                child: const Icon(Icons.inventory_2, color: Colors.black87, size: 28),
                               ),
                               const SizedBox(width: 16),
                               Expanded(
@@ -322,15 +309,15 @@ class _ManageProductsScreenState extends ConsumerState<ManageProductsScreen> {
                                         margin: const EdgeInsets.only(top: 4),
                                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                         decoration: BoxDecoration(
-                                          color: Colors.indigo.shade50,
+                                          color: Colors.grey[100],
                                           borderRadius: BorderRadius.circular(8),
                                         ),
                                         child: Text(
                                           category,
                                           style: TextStyle(
                                             fontSize: 11,
-                                            color: Colors.indigo.shade700,
-                                            fontWeight: FontWeight.w500,
+                                            color: Colors.black87,
+                                            fontWeight: FontWeight.w600,
                                           ),
                                         ),
                                       ),
@@ -352,16 +339,16 @@ class _ManageProductsScreenState extends ConsumerState<ManageProductsScreen> {
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                     decoration: BoxDecoration(
-                                      color: Colors.green.shade50,
+                                      color: Colors.grey[100],
                                       borderRadius: BorderRadius.circular(10),
-                                      border: Border.all(color: Colors.green.shade200),
+                                      border: Border.all(color: Colors.grey[200]!),
                                     ),
                                     child: Text(
                                       '₹${price.toStringAsFixed(2)}',
-                                      style: TextStyle(
+                                      style: const TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.bold,
-                                        color: Colors.green.shade700,
+                                        color: Colors.black,
                                       ),
                                     ),
                                   ),

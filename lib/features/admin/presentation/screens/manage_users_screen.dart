@@ -58,10 +58,9 @@ class _ManageUsersScreenState extends ConsumerState<ManageUsersScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Colors.white,
       body: Column(
         children: [
-          // Header with Green Gradient
           Container(
             padding: EdgeInsets.only(
               top: MediaQuery.of(context).padding.top + 16,
@@ -70,15 +69,11 @@ class _ManageUsersScreenState extends ConsumerState<ManageUsersScreen> {
               bottom: 16,
             ),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.green[700]!, Colors.green[500]!],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
+              color: Colors.white,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.green.withOpacity(0.3),
-                  blurRadius: 8,
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 6,
                   offset: const Offset(0, 2),
                 ),
               ],
@@ -88,21 +83,20 @@ class _ManageUsersScreenState extends ConsumerState<ManageUsersScreen> {
                 Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      icon: const Icon(Icons.arrow_back, color: Colors.black87),
                       onPressed: () => Navigator.pop(context),
                     ),
                     const Text(
                       'Manage Users',
                       style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.black,
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 16),
-                // Search Bar
                 TextField(
                   controller: _searchController,
                   onChanged: (value) {
@@ -116,12 +110,12 @@ class _ManageUsersScreenState extends ConsumerState<ManageUsersScreen> {
                     fillColor: Colors.white,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
+                      borderSide: BorderSide(color: Colors.grey[300]!),
                     ),
-                    prefixIcon: const Icon(Icons.search, color: Colors.green),
+                    prefixIcon: const Icon(Icons.search, color: Colors.black87),
                     suffixIcon: _searchQuery.isNotEmpty
                         ? IconButton(
-                            icon: const Icon(Icons.clear, color: Colors.green),
+                            icon: const Icon(Icons.clear, color: Colors.black87),
                             onPressed: () {
                               _searchController.clear();
                               setState(() {
@@ -133,7 +127,6 @@ class _ManageUsersScreenState extends ConsumerState<ManageUsersScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                // Role Filter Chips
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Row(
@@ -218,9 +211,10 @@ class _ManageUsersScreenState extends ConsumerState<ManageUsersScreen> {
 
                     return Card(
                       margin: const EdgeInsets.only(bottom: 12),
-                      elevation: 2,
+                      elevation: 0,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(color: Colors.grey[200]!),
                       ),
                       child: InkWell(
                         onTap: () => _showUserDetails(context, userId, user),
@@ -229,25 +223,18 @@ class _ManageUsersScreenState extends ConsumerState<ManageUsersScreen> {
                           padding: const EdgeInsets.all(16),
                           child: Row(
                             children: [
-                              // Icon with gradient
+                              // Colored role icon
                               Container(
                                 width: 50,
                                 height: 50,
                                 decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      getRoleColor(role).withOpacity(0.7),
-                                      getRoleColor(role),
-                                    ],
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                  ),
+                                  color: getRoleColor(role).withOpacity(0.12),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Icon(
                                   getRoleIcon(role),
-                                  color: Colors.white,
-                                  size: 28,
+                                  color: getRoleColor(role),
+                                  size: 26,
                                 ),
                               ),
                               const SizedBox(width: 16),
@@ -359,7 +346,8 @@ class _ManageUsersScreenState extends ConsumerState<ManageUsersScreen> {
             const SnackBar(content: Text('Add User - Coming soon!')),
           );
         },
-        backgroundColor: Colors.green,
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
         icon: const Icon(Icons.add),
         label: const Text('Add User'),
       ),
@@ -379,17 +367,13 @@ class _ManageUsersScreenState extends ConsumerState<ManageUsersScreen> {
           });
         },
         backgroundColor: Colors.white,
-        selectedColor: role == 'All' ? Colors.white : getRoleColor(role).withOpacity(0.2),
+        selectedColor: Colors.white,
         labelStyle: TextStyle(
-          color: isSelected
-              ? (role == 'All' ? Colors.green : getRoleColor(role))
-              : Colors.grey[700],
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          color: isSelected ? getRoleColor(role) : Colors.grey[700],
+          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
         ),
         side: BorderSide(
-          color: isSelected
-              ? (role == 'All' ? Colors.green : getRoleColor(role))
-              : Colors.grey[300]!,
+          color: isSelected ? getRoleColor(role) : Colors.grey[300]!,
           width: isSelected ? 2 : 1,
         ),
       ),
@@ -426,17 +410,12 @@ class _ManageUsersScreenState extends ConsumerState<ManageUsersScreen> {
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              // Header
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      getRoleColor(role).withOpacity(0.7),
-                      getRoleColor(role),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+                  color: Colors.white,
+                  border: Border(
+                    bottom: BorderSide(color: Colors.grey[200]!),
                   ),
                 ),
                 child: Row(
@@ -444,10 +423,10 @@ class _ManageUsersScreenState extends ConsumerState<ManageUsersScreen> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
+                        color: getRoleColor(role).withOpacity(0.12),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Icon(getRoleIcon(role), color: Colors.white, size: 28),
+                      child: Icon(getRoleIcon(role), color: getRoleColor(role), size: 26),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
@@ -459,14 +438,14 @@ class _ManageUsersScreenState extends ConsumerState<ManageUsersScreen> {
                             style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                              color: Colors.black,
                             ),
                           ),
                           Text(
                             role,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 14,
-                              color: Colors.white70,
+                              color: Colors.grey[600],
                             ),
                           ),
                         ],
@@ -636,10 +615,10 @@ class _ManageUsersScreenState extends ConsumerState<ManageUsersScreen> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Colors.green[50],
+              color: Colors.grey[100],
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(icon, size: 20, color: Colors.green),
+            child: Icon(icon, size: 20, color: Colors.black87),
           ),
           const SizedBox(width: 12),
           Expanded(

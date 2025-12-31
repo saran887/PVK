@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import '../../../auth/providers/auth_provider.dart';
 
 class ReadyToDeliverScreen extends ConsumerWidget {
@@ -44,13 +45,20 @@ class ReadyToDeliverScreen extends ConsumerWidget {
           }
 
           if (orders.isEmpty) {
-            return const Center(
+            return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.inventory_outlined, size: 64, color: Colors.grey),
-                  SizedBox(height: 16),
-                  Text('No orders ready for delivery', style: TextStyle(fontSize: 18, color: Colors.grey)),
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.shade50,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.inventory_outlined, size: 64, color: Colors.orange.shade600),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text('No orders ready for delivery', style: TextStyle(fontSize: 18, color: Colors.grey)),
                 ],
               ),
             );
@@ -70,9 +78,26 @@ class ReadyToDeliverScreen extends ConsumerWidget {
               return Card(
                 margin: const EdgeInsets.only(bottom: 12),
                 child: ExpansionTile(
-                  leading: CircleAvatar(
-                    backgroundColor: Colors.blue,
-                    child: Text('${index + 1}'),
+                  leading: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Colors.blue.shade400, Colors.blue.shade600],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: Text(
+                        '${index + 1}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
                   ),
                   title: Text(shopName, style: const TextStyle(fontWeight: FontWeight.bold)),
                   subtitle: Column(
@@ -97,11 +122,15 @@ class ReadyToDeliverScreen extends ConsumerWidget {
                           ..._buildOrderItems(order['items'] as List<dynamic>? ?? []),
                           const SizedBox(height: 16),
                           ElevatedButton.icon(
-                            onPressed: () => _markAsDelivered(context, orderId),
+                            onPressed: () => _markAsDelivered(
+                              context,
+                              orderId: orderId,
+                              amount: (totalAmount is num) ? totalAmount.toDouble() : 0,
+                            ),
                             icon: const Icon(Icons.check_circle),
                             label: const Text('Mark as Delivered'),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green,
+                              backgroundColor: Colors.black,
                               foregroundColor: Colors.white,
                             ),
                           ),
@@ -120,7 +149,7 @@ class ReadyToDeliverScreen extends ConsumerWidget {
 
   List<Widget> _buildOrderItems(List<dynamic> items) {
     return items.map((item) {
-      final name = item['name'] ?? 'Unknown';
+      final name = item['productName'] ?? item['name'] ?? 'Unknown';
       final quantity = item['quantity'] ?? 0;
       final price = item['price'] ?? 0;
       final total = quantity * price;
@@ -138,51 +167,172 @@ class ReadyToDeliverScreen extends ConsumerWidget {
     }).toList();
   }
 
-  Future<void> _markAsDelivered(BuildContext context, String orderId) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Confirm Delivery'),
-        content: const Text('Mark this order as delivered?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-            child: const Text('Confirm'),
-          ),
-        ],
-      ),
-    );
+  Future<void> _markAsDelivered(
+    BuildContext context, {
+    required String orderId,
+    required double amount,
+  }) async {
+    final paymentMethod = await _showPaymentMethodSheet(context, amount: amount);
+    if (paymentMethod == null) return;
 
-    if (confirm == true) {
-      try {
-        await FirebaseFirestore.instance.collection('orders').doc(orderId).update({
-          'status': 'delivered',
-          'deliveredAt': FieldValue.serverTimestamp(),
-        });
+    try {
+      await FirebaseFirestore.instance.collection('orders').doc(orderId).update({
+        'status': 'delivered',
+        'deliveredAt': FieldValue.serverTimestamp(),
+        'paymentStatus': 'paid',
+        'paymentMethod': paymentMethod,
+      });
 
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Order marked as delivered!'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
-      } catch (e) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Error: $e'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Order marked as delivered via ${paymentMethod.toUpperCase()}'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     }
+  }
+
+  Future<String?> _showPaymentMethodSheet(BuildContext context, {required double amount}) async {
+    String selected = 'cash';
+    final methods = [
+      {'key': 'cash', 'title': 'Cash', 'icon': Icons.payments_outlined, 'color': Colors.green},
+      {'key': 'gpay', 'title': 'GPay UPI', 'icon': Icons.qr_code_scanner, 'color': Colors.blue},
+      {'key': 'credit', 'title': 'Credit', 'icon': Icons.credit_card, 'color': Colors.purple},
+    ];
+
+    final result = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 16,
+                right: 16,
+                top: 16,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text('Select payment method', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  const SizedBox(height: 8),
+                  Text('Amount: ₹${amount.toStringAsFixed(2)}'),
+                  const SizedBox(height: 12),
+                  ...methods.map((m) {
+                    final isSelected = selected == m['key'];
+                    final color = m['color'] as Color;
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: isSelected ? color : Colors.grey.shade300),
+                        color: isSelected ? color.withOpacity(0.08) : Colors.white,
+                      ),
+                      child: ListTile(
+                        leading: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: color.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(m['icon'] as IconData, color: color),
+                        ),
+                        title: Text(m['title'] as String),
+                        trailing: Radio<String>(
+                          value: m['key'] as String,
+                          groupValue: selected,
+                          activeColor: color,
+                          onChanged: (val) => setState(() => selected = val!),
+                        ),
+                        onTap: () => setState(() => selected = m['key'] as String),
+                      ),
+                    );
+                  }),
+                  if (selected == 'gpay') ...[
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        color: Colors.white,
+                        border: Border.all(color: Colors.blue.shade200),
+                      ),
+                      child: Column(
+                        children: [
+                          const Text(
+                            'Scan QR Code to Pay',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 8),
+                          const Text('UPI ID: saransarvesh213@oksbi'),
+                          const SizedBox(height: 12),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.grey.shade300),
+                            ),
+                            child: QrImageView(
+                              data: 'upi://pay?pa=saransarvesh213@oksbi&pn=Saran Sarvesh A G&am=${amount.toStringAsFixed(2)}&cu=INR',
+                              size: 180,
+                              foregroundColor: Colors.black,
+                              backgroundColor: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Amount: ₹${amount.toStringAsFixed(2)}',
+                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('Cancel'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () => Navigator.pop(context, selected),
+                          style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
+                          child: const Text('Confirm & Deliver'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    return result;
   }
 }

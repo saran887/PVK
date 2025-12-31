@@ -106,7 +106,7 @@ class _ProcessedOrdersScreenState extends ConsumerState<ProcessedOrdersScreen> {
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
                   .collection('orders')
-                  .where('status', isEqualTo: 'billed')
+                  .where('status', whereIn: ['billed', 'delivered'])
                   .orderBy('billedAt', descending: true)
                   .snapshots(),
               builder: (context, snapshot) {

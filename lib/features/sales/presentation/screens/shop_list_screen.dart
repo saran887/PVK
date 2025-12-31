@@ -1,6 +1,8 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../auth/providers/auth_provider.dart';
 
@@ -12,6 +14,8 @@ class ShopListScreen extends ConsumerStatefulWidget {
 }
 
 class _ShopListScreenState extends ConsumerState<ShopListScreen> {
+  static const _upiId = 'saransarvesh213@oksbi';
+  static const _upiName = 'Saran Sarvesh A G';
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
@@ -27,9 +31,12 @@ class _ShopListScreenState extends ConsumerState<ShopListScreen> {
     final userLocationId = currentUser?.locationId ?? '';
 
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text('Shops'),
         elevation: 0,
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(70),
           child: Padding(
@@ -38,7 +45,7 @@ class _ShopListScreenState extends ConsumerState<ShopListScreen> {
               controller: _searchController,
               decoration: InputDecoration(
                 hintText: 'Search shops...',
-                prefixIcon: const Icon(Icons.search),
+                prefixIcon: const Icon(Icons.search, color: Colors.black87),
                 suffixIcon: _searchQuery.isNotEmpty
                     ? IconButton(
                         icon: const Icon(Icons.clear),
@@ -51,10 +58,10 @@ class _ShopListScreenState extends ConsumerState<ShopListScreen> {
                       )
                     : null,
                 filled: true,
-                fillColor: Theme.of(context).cardColor,
+                fillColor: Colors.white,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
+                  borderSide: BorderSide(color: Colors.grey[300]!),
                 ),
               ),
               onChanged: (value) {
@@ -162,9 +169,10 @@ class _ShopListScreenState extends ConsumerState<ShopListScreen> {
 
               return Card(
                 margin: const EdgeInsets.only(bottom: 12),
-                elevation: 2,
+                elevation: 0,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(color: Colors.grey[200]!),
                 ),
                 child: InkWell(
                   onTap: () => _showShopDetails(context, shop, shopId),
@@ -178,11 +186,11 @@ class _ShopListScreenState extends ConsumerState<ShopListScreen> {
                           children: [
                             CircleAvatar(
                               radius: 24,
-                              backgroundColor: Theme.of(context).primaryColor.withOpacity(0.2),
+                              backgroundColor: Colors.grey[200],
                               child: Text(
                                 name.isNotEmpty ? name[0].toUpperCase() : '?',
-                                style: TextStyle(
-                                  color: Theme.of(context).primaryColor,
+                                style: const TextStyle(
+                                  color: Colors.black,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 20,
                                 ),
@@ -323,11 +331,11 @@ class _ShopListScreenState extends ConsumerState<ShopListScreen> {
                       children: [
                         CircleAvatar(
                           radius: 32,
-                          backgroundColor: Theme.of(context).primaryColor.withOpacity(0.2),
+                          backgroundColor: Colors.grey[200],
                           child: Text(
                             name.isNotEmpty ? name[0].toUpperCase() : '?',
-                            style: TextStyle(
-                              color: Theme.of(context).primaryColor,
+                            style: const TextStyle(
+                              color: Colors.black,
                               fontWeight: FontWeight.bold,
                               fontSize: 28,
                             ),
@@ -385,6 +393,10 @@ class _ShopListScreenState extends ConsumerState<ShopListScreen> {
                         value: gst,
                       ),
                     const SizedBox(height: 20),
+                    _ShopRecentItems(shopId: shopId),
+                    const SizedBox(height: 24),
+                    _UpiPaymentCard(upiId: _upiId, upiName: _upiName),
+                    const SizedBox(height: 12),
                   ],
                 ),
               ),
@@ -462,6 +474,186 @@ class _DetailRow extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _ShopRecentItems extends StatelessWidget {
+  final String shopId;
+  const _ShopRecentItems({required this.shopId});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Recent order items',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        ),
+        const SizedBox(height: 12),
+        StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+          stream: FirebaseFirestore.instance
+              .collection('orders')
+              .where('shopId', isEqualTo: shopId)
+              .orderBy('billedAt', descending: true)
+              .limit(1)
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return Text('Error loading items: ${snapshot.error}');
+            }
+            if (!snapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            final docs = snapshot.data!.docs;
+            if (docs.isEmpty) {
+              return Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Text(
+                  'No recent products found for this store.',
+                  style: TextStyle(color: Colors.grey),
+                ),
+              );
+            }
+
+            final order = docs.first.data();
+            final items = (order['items'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
+            final billedAt = order['billedAt'] as Timestamp?;
+            final totalAmount = order['totalAmount'] ?? 0;
+            final billedText = billedAt != null
+                ? DateFormat('dd MMM, hh:mm a').format(billedAt.toDate())
+                : 'Recently placed';
+
+            return Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade200),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Billed: $billedText', style: TextStyle(color: Colors.grey[700])),
+                      Text('₹${(totalAmount is num ? totalAmount.toDouble() : 0).toStringAsFixed(2)}',
+                          style: const TextStyle(fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  ...items.map((item) {
+                    final name = item['name'] ?? 'Item';
+                    final qty = item['quantity'] ?? 0;
+                    final price = item['price'] ?? 0;
+                    final total = (qty is num ? qty : 0) * (price is num ? price : 0);
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              name,
+                              style: const TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                          Text('x$qty', style: TextStyle(color: Colors.grey[700])),
+                          const SizedBox(width: 12),
+                          Text('₹${total.toStringAsFixed(2)}',
+                              style: const TextStyle(fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ],
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
+
+class _UpiPaymentCard extends StatelessWidget {
+  final String upiId;
+  final String upiName;
+  const _UpiPaymentCard({required this.upiId, required this.upiName});
+
+  @override
+  Widget build(BuildContext context) {
+    final qrData = 'upi://pay?pa=$upiId&pn=$upiName&cu=INR';
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text(
+            upiName,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+          const SizedBox(height: 6),
+          Text('UPI ID: $upiId', style: TextStyle(color: Colors.grey[700])),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade200),
+            ),
+            child: QrImageView(
+              data: qrData,
+              size: 200,
+              foregroundColor: Colors.black,
+              backgroundColor: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 12),
+          const Text('Scan to pay with any UPI app'),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              icon: const Icon(Icons.qr_code_scanner),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
+              onPressed: () async {
+                final uri = Uri.parse(qrData);
+                if (await canLaunchUrl(uri)) {
+                  await launchUrl(uri, mode: LaunchMode.externalApplication);
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Could not open UPI app')),
+                  );
+                }
+              },
+              label: const Text('Open in UPI app'),
+            ),
+          ),
+        ],
       ),
     );
   }

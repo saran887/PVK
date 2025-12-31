@@ -11,25 +11,15 @@ class BillingHomeScreen extends ConsumerWidget {
     final user = ref.watch(currentUserProvider).asData?.value;
 
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Colors.blue.shade50,
-              Colors.purple.shade50,
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // Header Section
-              Container(
-                padding: const EdgeInsets.all(20),
-                child: Row(
-                  children: [
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Header Section
+            Container(
+              padding: const EdgeInsets.all(20),
+              child: Row(
+                children: [
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -77,17 +67,9 @@ class BillingHomeScreen extends ConsumerWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Container(
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Colors.blue.shade400, Colors.blue.shade600],
-                    ),
+                    color: Colors.grey[100],
                     borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.blue.withOpacity(0.3),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
+                    border: Border.all(color: Colors.grey[300]!),
                   ),
                   child: Padding(
                     padding: const EdgeInsets.all(20),
@@ -96,24 +78,24 @@ class BillingHomeScreen extends ConsumerWidget {
                         Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
+                            color: Colors.grey[200],
                             borderRadius: BorderRadius.circular(16),
                           ),
-                          child: const Icon(Icons.person, size: 32, color: Colors.white),
+                          child: Icon(Icons.person, size: 32, color: Colors.grey[700]),
                         ),
                         const SizedBox(width: 16),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
+                              Text(
                                 'Welcome back,',
-                                style: TextStyle(color: Colors.white70, fontSize: 14),
+                                style: TextStyle(color: Colors.grey[600], fontSize: 14),
                               ),
                               Text(
                                 user?.name ?? 'Billing Person',
                                 style: const TextStyle(
-                                  color: Colors.white,
+                                  color: Colors.black87,
                                   fontSize: 20,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -124,8 +106,17 @@ class BillingHomeScreen extends ConsumerWidget {
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
+                            gradient: LinearGradient(
+                              colors: [Colors.blue.shade400, Colors.blue.shade600],
+                            ),
                             borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.blue.withOpacity(0.3),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
                           ),
                           child: const Icon(Icons.receipt_long, color: Colors.white, size: 28),
                         ),
@@ -170,9 +161,7 @@ class BillingHomeScreen extends ConsumerWidget {
                                 icon: Icons.pending_actions,
                                 title: 'Pending Orders',
                                 subtitle: 'Process new orders',
-                                gradient: LinearGradient(
-                                  colors: [Colors.orange.shade300, Colors.orange.shade500],
-                                ),
+                                color: Colors.orange,
                                 onTap: () {
                                   context.push('/billing/pending-orders');
                                 },
@@ -181,9 +170,7 @@ class BillingHomeScreen extends ConsumerWidget {
                                 icon: Icons.edit_note,
                                 title: 'Adjust Rates',
                                 subtitle: 'Update pricing',
-                                gradient: LinearGradient(
-                                  colors: [Colors.blue.shade300, Colors.blue.shade500],
-                                ),
+                                color: Colors.blue,
                                 onTap: () {
                                   context.push('/billing/adjust-rates');
                                 },
@@ -192,9 +179,7 @@ class BillingHomeScreen extends ConsumerWidget {
                                 icon: Icons.check_circle_outline,
                                 title: 'Processed Orders',
                                 subtitle: 'View completed',
-                                gradient: LinearGradient(
-                                  colors: [Colors.green.shade300, Colors.green.shade500],
-                                ),
+                                color: Colors.green,
                                 onTap: () {
                                   context.push('/billing/processed-orders');
                                 },
@@ -210,8 +195,7 @@ class BillingHomeScreen extends ConsumerWidget {
             ],
           ),
         ),
-      ),
-    );
+      );
   }
 }
 
@@ -219,14 +203,14 @@ class _QuickActionCard extends StatefulWidget {
   final IconData icon;
   final String title;
   final String subtitle;
-  final Gradient gradient;
+  final Color color;
   final VoidCallback onTap;
 
   const _QuickActionCard({
     required this.icon,
     required this.title,
     required this.subtitle,
-    required this.gradient,
+    required this.color,
     required this.onTap,
   });
 
@@ -269,11 +253,12 @@ class _QuickActionCardState extends State<_QuickActionCard> with SingleTickerPro
         scale: _scaleAnimation,
         child: Container(
           decoration: BoxDecoration(
-            gradient: widget.gradient,
+            color: Colors.white,
             borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.grey[300]!),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.1),
+                color: Colors.black.withOpacity(0.05),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
@@ -287,10 +272,10 @@ class _QuickActionCardState extends State<_QuickActionCard> with SingleTickerPro
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.3),
+                    color: Colors.grey[100],
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  child: Icon(widget.icon, size: 36, color: Colors.white),
+                  child: Icon(widget.icon, size: 36, color: widget.color),
                 ),
                 const SizedBox(height: 12),
                 Text(
@@ -299,7 +284,7 @@ class _QuickActionCardState extends State<_QuickActionCard> with SingleTickerPro
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: Colors.black87,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -308,7 +293,7 @@ class _QuickActionCardState extends State<_QuickActionCard> with SingleTickerPro
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.grey[600],
                   ),
                 ),
               ],

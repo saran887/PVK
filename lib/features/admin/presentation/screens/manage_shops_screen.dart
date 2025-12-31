@@ -23,10 +23,9 @@ class _ManageShopsScreenState extends ConsumerState<ManageShopsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Colors.white,
       body: Column(
         children: [
-          // Search Header with Purple Gradient
           Container(
             padding: EdgeInsets.only(
               top: MediaQuery.of(context).padding.top + 16,
@@ -35,15 +34,11 @@ class _ManageShopsScreenState extends ConsumerState<ManageShopsScreen> {
               bottom: 16,
             ),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.purple[700]!, Colors.purple[500]!],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
+              color: Colors.white,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.purple.withOpacity(0.3),
-                  blurRadius: 8,
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 6,
                   offset: const Offset(0, 2),
                 ),
               ],
@@ -54,21 +49,21 @@ class _ManageShopsScreenState extends ConsumerState<ManageShopsScreen> {
                 Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      icon: const Icon(Icons.arrow_back, color: Colors.black87),
                       onPressed: () => context.pop(),
                     ),
+                    const SizedBox(width: 8),
                     const Text(
                       'Manage Shops',
                       style: TextStyle(
-                        fontSize: 24,
+                        fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: Colors.black,
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 16),
-                // Search Bar
                 TextField(
                   controller: _searchController,
                   onChanged: (value) {
@@ -82,12 +77,13 @@ class _ManageShopsScreenState extends ConsumerState<ManageShopsScreen> {
                     fillColor: Colors.white,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
+                      borderSide: BorderSide(color: Colors.grey[300]!),
                     ),
-                    prefixIcon: const Icon(Icons.search, color: Colors.purple),
+                    prefixIcon: const Icon(Icons.search, color: Colors.black87),
                     suffixIcon: _searchQuery.isNotEmpty
                         ? IconButton(
-                            icon: const Icon(Icons.clear, color: Colors.purple),
+                            icon:
+                                const Icon(Icons.clear, color: Colors.black87),
                             onPressed: () {
                               _searchController.clear();
                               setState(() {
@@ -121,9 +117,12 @@ class _ManageShopsScreenState extends ConsumerState<ManageShopsScreen> {
                 final shops = snapshot.data!.docs.where((doc) {
                   final data = doc.data() as Map<String, dynamic>;
                   final name = (data['name'] as String? ?? '').toLowerCase();
-                  final owner = (data['ownerName'] as String? ?? '').toLowerCase();
-                  final location = (data['locationName'] as String? ?? '').toLowerCase();
-                  final address = (data['address'] as String? ?? '').toLowerCase();
+                  final owner =
+                      (data['ownerName'] as String? ?? '').toLowerCase();
+                  final location =
+                      (data['locationName'] as String? ?? '').toLowerCase();
+                  final address =
+                      (data['address'] as String? ?? '').toLowerCase();
                   return _searchQuery.isEmpty ||
                       name.contains(_searchQuery) ||
                       owner.contains(_searchQuery) ||
@@ -135,13 +134,12 @@ class _ManageShopsScreenState extends ConsumerState<ManageShopsScreen> {
                   return Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.store_outlined, size: 64, color: Colors.grey[400]),
-                        const SizedBox(height: 16),
-                        Text(
-                          _searchQuery.isEmpty ? 'No shops yet' : 'No shops found',
-                          style: TextStyle(fontSize: 18, color: Colors.grey[600]),
-                        ),
+                      children: const [
+                        Icon(Icons.store_outlined,
+                            size: 64, color: Colors.grey),
+                        SizedBox(height: 12),
+                        Text('No shops found',
+                            style: TextStyle(color: Colors.grey)),
                       ],
                     ),
                   );
@@ -158,9 +156,10 @@ class _ManageShopsScreenState extends ConsumerState<ManageShopsScreen> {
 
                     return Card(
                       margin: const EdgeInsets.only(bottom: 12),
-                      elevation: 2,
+                      elevation: 0,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(color: Colors.grey[200]!),
                       ),
                       child: InkWell(
                         onTap: () => _showShopDetails(context, shopId, shop),
@@ -174,17 +173,13 @@ class _ManageShopsScreenState extends ConsumerState<ManageShopsScreen> {
                                 width: 50,
                                 height: 50,
                                 decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [Colors.purple[400]!, Colors.purple[600]!],
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                  ),
+                                  color: Colors.grey[100],
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: const Icon(
                                   Icons.store,
-                                  color: Colors.white,
-                                  size: 28,
+                                  color: Colors.black87,
+                                  size: 26,
                                 ),
                               ),
                               const SizedBox(width: 16),
@@ -203,7 +198,8 @@ class _ManageShopsScreenState extends ConsumerState<ManageShopsScreen> {
                                     const SizedBox(height: 4),
                                     Row(
                                       children: [
-                                        Icon(Icons.person, size: 14, color: Colors.grey[600]),
+                                        Icon(Icons.person,
+                                            size: 14, color: Colors.grey[600]),
                                         const SizedBox(width: 4),
                                         Text(
                                           shop['ownerName'] ?? 'Unknown',
@@ -214,15 +210,20 @@ class _ManageShopsScreenState extends ConsumerState<ManageShopsScreen> {
                                         ),
                                       ],
                                     ),
-                                    if (shop['locationName'] != null || shop['address'] != null) ...[
+                                    if (shop['locationName'] != null ||
+                                        shop['address'] != null) ...[
                                       const SizedBox(height: 4),
                                       Row(
                                         children: [
-                                          Icon(Icons.location_on, size: 14, color: Colors.grey[600]),
+                                          Icon(Icons.location_on,
+                                              size: 14,
+                                              color: Colors.grey[600]),
                                           const SizedBox(width: 4),
                                           Expanded(
                                             child: Text(
-                                              shop['locationName'] ?? shop['address'] ?? '',
+                                              shop['locationName'] ??
+                                                  shop['address'] ??
+                                                  '',
                                               style: TextStyle(
                                                 fontSize: 14,
                                                 color: Colors.grey[600],
@@ -238,9 +239,12 @@ class _ManageShopsScreenState extends ConsumerState<ManageShopsScreen> {
                               ),
                               // Status Badge
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 6),
                                 decoration: BoxDecoration(
-                                  color: isActive ? Colors.green[50] : Colors.red[50],
+                                  color: isActive
+                                      ? Colors.green[50]
+                                      : Colors.red[50],
                                   borderRadius: BorderRadius.circular(20),
                                   border: Border.all(
                                     color: isActive ? Colors.green : Colors.red,
@@ -252,12 +256,15 @@ class _ManageShopsScreenState extends ConsumerState<ManageShopsScreen> {
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold,
-                                    color: isActive ? Colors.green[700] : Colors.red[700],
+                                    color: isActive
+                                        ? Colors.green[700]
+                                        : Colors.red[700],
                                   ),
                                 ),
                               ),
                               const SizedBox(width: 8),
-                              Icon(Icons.chevron_right, color: Colors.grey[400]),
+                              Icon(Icons.chevron_right,
+                                  color: Colors.grey[400]),
                             ],
                           ),
                         ),
@@ -272,14 +279,16 @@ class _ManageShopsScreenState extends ConsumerState<ManageShopsScreen> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.push('/admin/add-shop'),
-        backgroundColor: Colors.purple,
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
         icon: const Icon(Icons.add),
         label: const Text('Add Shop'),
       ),
     );
   }
 
-  void _showShopDetails(BuildContext context, String shopId, Map<String, dynamic> shop) {
+  void _showShopDetails(
+      BuildContext context, String shopId, Map<String, dynamic> shop) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -307,23 +316,22 @@ class _ManageShopsScreenState extends ConsumerState<ManageShopsScreen> {
               ),
               // Header
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Colors.purple[400]!, Colors.purple[600]!],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+                  color: Colors.white,
+                  border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
                 ),
                 child: Row(
                   children: [
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
+                        color: Colors.grey[200],
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Icon(Icons.store, color: Colors.white, size: 28),
+                      child: const Icon(Icons.store,
+                          color: Colors.black87, size: 28),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
@@ -335,14 +343,14 @@ class _ManageShopsScreenState extends ConsumerState<ManageShopsScreen> {
                             style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                              color: Colors.black,
                             ),
                           ),
                           Text(
                             shop['ownerName'] ?? 'Unknown',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 14,
-                              color: Colors.white70,
+                              color: Colors.grey[600],
                             ),
                           ),
                         ],
@@ -357,36 +365,45 @@ class _ManageShopsScreenState extends ConsumerState<ManageShopsScreen> {
                   controller: scrollController,
                   padding: const EdgeInsets.all(20),
                   children: [
-                    if (shop['phone'] != null && shop['phone'].toString().isNotEmpty)
+                    if (shop['phone'] != null &&
+                        shop['phone'].toString().isNotEmpty)
                       _buildDetailRow(Icons.phone, 'Phone', shop['phone']),
-                    if (shop['locationName'] != null && shop['locationName'].toString().isNotEmpty)
-                      _buildDetailRow(Icons.location_city, 'Location', shop['locationName']),
-                    if (shop['address'] != null && shop['address'].toString().isNotEmpty)
+                    if (shop['locationName'] != null &&
+                        shop['locationName'].toString().isNotEmpty)
+                      _buildDetailRow(Icons.location_city, 'Location',
+                          shop['locationName']),
+                    if (shop['address'] != null &&
+                        shop['address'].toString().isNotEmpty)
                       _buildDetailRow(Icons.home, 'Address', shop['address']),
-                    if (shop['gstNumber'] != null && shop['gstNumber'].toString().isNotEmpty)
-                      _buildDetailRow(Icons.receipt_long, 'GST Number', shop['gstNumber']),
+                    if (shop['gstNumber'] != null &&
+                        shop['gstNumber'].toString().isNotEmpty)
+                      _buildDetailRow(
+                          Icons.receipt_long, 'GST Number', shop['gstNumber']),
                     _buildDetailRow(
-                      shop['isActive'] == true ? Icons.check_circle : Icons.cancel,
+                      shop['isActive'] == true
+                          ? Icons.check_circle
+                          : Icons.cancel,
                       'Status',
                       shop['isActive'] == true ? 'Active' : 'Inactive',
-                      valueColor: shop['isActive'] == true ? Colors.green : Colors.red,
+                      valueColor:
+                          shop['isActive'] == true ? Colors.green : Colors.red,
                     ),
                     const SizedBox(height: 20),
                     // Action Buttons
                     Row(
                       children: [
                         Expanded(
-                          child: ElevatedButton.icon(
+                          child: OutlinedButton.icon(
                             onPressed: () {
                               Navigator.pop(context);
                               context.push('/admin/edit-shop/$shopId');
                             },
-                            icon: const Icon(Icons.edit),
-                            label: const Text('Edit'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.purple,
-                              foregroundColor: Colors.white,
+                            icon: const Icon(Icons.edit, color: Colors.black87),
+                            label: const Text('Edit',
+                                style: TextStyle(color: Colors.black87)),
+                            style: OutlinedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 12),
+                              side: BorderSide(color: Colors.grey[300]!),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
@@ -395,7 +412,7 @@ class _ManageShopsScreenState extends ConsumerState<ManageShopsScreen> {
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: ElevatedButton.icon(
+                          child: OutlinedButton.icon(
                             onPressed: () async {
                               final isActive = shop['isActive'] ?? true;
                               await FirebaseFirestore.instance
@@ -411,7 +428,7 @@ class _ManageShopsScreenState extends ConsumerState<ManageShopsScreen> {
                                   SnackBar(
                                     content: Text(
                                         'Shop ${!isActive ? "activated" : "deactivated"}'),
-                                    backgroundColor: Colors.green,
+                                    backgroundColor: Colors.black,
                                   ),
                                 );
                               }
@@ -420,16 +437,17 @@ class _ManageShopsScreenState extends ConsumerState<ManageShopsScreen> {
                               shop['isActive'] == true
                                   ? Icons.toggle_off
                                   : Icons.toggle_on,
+                              color: Colors.black87,
                             ),
                             label: Text(
-                              shop['isActive'] == true ? 'Deactivate' : 'Activate',
+                              shop['isActive'] == true
+                                  ? 'Deactivate'
+                                  : 'Activate',
+                              style: const TextStyle(color: Colors.black87),
                             ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: shop['isActive'] == true
-                                  ? Colors.orange
-                                  : Colors.green,
-                              foregroundColor: Colors.white,
+                            style: OutlinedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 12),
+                              side: BorderSide(color: Colors.grey[300]!),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
@@ -439,7 +457,7 @@ class _ManageShopsScreenState extends ConsumerState<ManageShopsScreen> {
                       ],
                     ),
                     const SizedBox(height: 12),
-                    ElevatedButton.icon(
+                    OutlinedButton.icon(
                       onPressed: () async {
                         final confirm = await showDialog<bool>(
                           context: context,
@@ -473,18 +491,18 @@ class _ManageShopsScreenState extends ConsumerState<ManageShopsScreen> {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text('${shop['name']} deleted'),
-                                backgroundColor: Colors.green,
+                                backgroundColor: Colors.black,
                               ),
                             );
                           }
                         }
                       },
-                      icon: const Icon(Icons.delete),
-                      label: const Text('Delete Shop'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        foregroundColor: Colors.white,
+                      icon: const Icon(Icons.delete, color: Colors.black87),
+                      label: const Text('Delete Shop',
+                          style: TextStyle(color: Colors.black87)),
+                      style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 12),
+                        side: BorderSide(color: Colors.grey[300]!),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -514,10 +532,10 @@ class _ManageShopsScreenState extends ConsumerState<ManageShopsScreen> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Colors.purple[50],
+              color: Colors.grey[100],
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(icon, size: 20, color: Colors.purple),
+            child: Icon(icon, size: 20, color: Colors.black87),
           ),
           const SizedBox(width: 12),
           Expanded(

@@ -44,19 +44,19 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text(
-          'Admin Dashboard',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          'Reports',
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
         ),
-        backgroundColor: Colors.indigo.shade600,
-        foregroundColor: Colors.white,
-        elevation: 2,
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 1,
         actions: [
           // Period Filter
           PopupMenuButton<String>(
-            icon: const Icon(Icons.filter_list),
+            icon: const Icon(Icons.filter_list, color: Colors.black),
             onSelected: (value) {
               if (value == 'custom') {
                 _selectCustomDateRange();
@@ -77,7 +77,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
           ),
           // More Options
           PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert),
+            icon: const Icon(Icons.more_vert, color: Colors.black),
             onSelected: (value) {
               if (value == 'refresh') {
                 setState(() {});
@@ -111,18 +111,27 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
             ],
           ),
         ],
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: Colors.white,
-          indicatorWeight: 3,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
-          tabs: const [
-            Tab(icon: Icon(Icons.analytics), text: 'Analytics'),
-            Tab(icon: Icon(Icons.receipt_long), text: 'Orders'),
-            Tab(icon: Icon(Icons.people), text: 'Staff'),
-            Tab(icon: Icon(Icons.store), text: 'Shops'),
-          ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(48),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
+            ),
+            child: TabBar(
+              controller: _tabController,
+              indicatorColor: Colors.black,
+              indicatorWeight: 3,
+              labelColor: Colors.black,
+              unselectedLabelColor: Colors.grey[600],
+              tabs: const [
+                Tab(icon: Icon(Icons.analytics), text: 'Analytics'),
+                Tab(icon: Icon(Icons.receipt_long), text: 'Orders'),
+                Tab(icon: Icon(Icons.people), text: 'Staff'),
+                Tab(icon: Icon(Icons.store), text: 'Shops'),
+              ],
+            ),
+          ),
         ),
       ),
       body: Column(
@@ -131,15 +140,18 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
           if (_selectedPeriod != 'all')
             Container(
               padding: const EdgeInsets.all(12),
-              color: Colors.indigo.shade50,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
+              ),
               child: Row(
                 children: [
-                  Icon(Icons.calendar_today, size: 16, color: Colors.indigo.shade700),
+                  const Icon(Icons.calendar_today, size: 16, color: Colors.black87),
                   const SizedBox(width: 8),
                   Text(
                     _getPeriodText(),
-                    style: TextStyle(
-                      color: Colors.indigo.shade700,
+                    style: const TextStyle(
+                      color: Colors.black,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -224,12 +236,12 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Summary Header
-          Text(
+          const Text(
             'Financial Overview',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: Colors.indigo.shade800,
+              color: Colors.black,
             ),
           ),
           const SizedBox(height: 16),

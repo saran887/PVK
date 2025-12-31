@@ -44,13 +44,20 @@ class DeliveryHistoryScreen extends ConsumerWidget {
           }
 
           if (orders.isEmpty) {
-            return const Center(
+            return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.history, size: 64, color: Colors.grey),
-                  SizedBox(height: 16),
-                  Text('No delivery history', style: TextStyle(fontSize: 18, color: Colors.grey)),
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.indigo.shade50,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.history, size: 64, color: Colors.indigo.shade600),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text('No delivery history', style: TextStyle(fontSize: 18, color: Colors.grey)),
                 ],
               ),
             );
@@ -70,9 +77,27 @@ class DeliveryHistoryScreen extends ConsumerWidget {
               return Card(
                 margin: const EdgeInsets.only(bottom: 12),
                 child: ExpansionTile(
-                  leading: const CircleAvatar(
-                    backgroundColor: Colors.green,
-                    child: Icon(Icons.check, color: Colors.white),
+                  leading: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Colors.green.shade400, Colors.green.shade600],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.green.withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: const Center(
+                      child: Icon(Icons.check, color: Colors.white),
+                    ),
                   ),
                   title: Text(shopName, style: const TextStyle(fontWeight: FontWeight.bold)),
                   subtitle: Column(
@@ -110,7 +135,7 @@ class DeliveryHistoryScreen extends ConsumerWidget {
 
   List<Widget> _buildOrderItems(List<dynamic> items) {
     return items.map((item) {
-      final name = item['name'] ?? 'Unknown';
+      final name = item['productName'] ?? item['name'] ?? 'Unknown';
       final quantity = item['quantity'] ?? 0;
       final price = item['price'] ?? 0;
       final total = quantity * price;

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -21,28 +22,35 @@ final authStateProvider = StreamProvider<User?>((ref) {
   return auth.authStateChanges();
 });
 
-// Current user document
-final currentUserProvider = StreamProvider<UserModel?>((ref) async* {
+// Current user document - optimized stream handling
+final currentUserProvider = StreamProvider<UserModel?>((ref) {
   final authState = ref.watch(authStateProvider);
   
-  await for (final user in authState.when(
-    data: (user) => Stream.value(user),
-    loading: () => const Stream.empty(),
-    error: (_, __) => const Stream.empty(),
-  )) {
-    if (user == null) {
-      yield null;
-    } else {
-      final firestore = ref.read(firestoreProvider);
-      final userDoc = await firestore.collection('users').doc(user.uid).get();
-      
-      if (userDoc.exists) {
-        yield UserModel.fromFirestore(userDoc.data()!);
-      } else {
-        yield null;
+  return authState.when(
+    data: (user) {
+      if (user == null) {
+        return Stream.value(null);
       }
-    }
-  }
+      
+      final firestore = ref.read(firestoreProvider);
+      return firestore
+          .collection('users')
+          .doc(user.uid)
+          .snapshots()
+          .map((doc) {
+            if (doc.exists && doc.data() != null) {
+              return UserModel.fromFirestore(doc.data()!);
+            }
+            return null;
+          })
+          .handleError((error) {
+            debugPrint('Error fetching user document: $error');
+            return null;
+          });
+    },
+    loading: () => Stream.value(null),
+    error: (_, __) => Stream.value(null),
+  );
 });
 
 class AuthRepository {
@@ -53,26 +61,50 @@ class AuthRepository {
 
   User? get currentUser => _auth.currentUser;
 
+  /// Sign in with a 4-digit code
+  /// First tries the code as a string, then as a number
   Future<UserCredential> signInWithCode(String code) async {
-    // Query Firestore for user with this code
-    final usersQuery = await _firestore
+    // Try finding user with code as string
+    QuerySnapshot usersQuery = await _firestore
         .collection('users')
         .where('code', isEqualTo: code)
         .limit(1)
         .get();
 
+    // If not found, try as number
     if (usersQuery.docs.isEmpty) {
-      throw Exception('Invalid code');
+      final codeNum = int.tryParse(code);
+      if (codeNum != null) {
+        usersQuery = await _firestore
+            .collection('users')
+            .where('code', isEqualTo: codeNum)
+            .limit(1)
+            .get();
+      }
+    }
+
+    if (usersQuery.docs.isEmpty) {
+      throw AuthException('Invalid code. No user found.');
     }
 
     final userDoc = usersQuery.docs.first;
-    final userData = userDoc.data();
+    final userData = userDoc.data() as Map<String, dynamic>;
 
-    // Sign in with email/password
-    return await _auth.signInWithEmailAndPassword(
-      email: userData['email'],
-      password: userData['password'] ?? code, // Use code as password
-    );
+    final email = userData['email'] as String?;
+    final password = userData['password'] as String? ?? code;
+
+    if (email == null || email.isEmpty) {
+      throw AuthException('User email not configured.');
+    }
+
+    try {
+      return await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+    } on FirebaseAuthException catch (e) {
+      throw AuthException(_getFirebaseAuthErrorMessage(e.code));
+    }
   }
 
   Future<void> signOut() async {
@@ -85,6 +117,33 @@ class AuthRepository {
       password: password,
     );
 
-    await _firestore.collection('users').doc(userCredential.user!.uid).set(user.toMap());
+    await _firestore
+        .collection('users')
+        .doc(userCredential.user!.uid)
+        .set(user.toMap());
   }
+
+  String _getFirebaseAuthErrorMessage(String code) {
+    switch (code) {
+      case 'user-not-found':
+        return 'No user found with this code.';
+      case 'wrong-password':
+        return 'Invalid credentials. Please contact admin.';
+      case 'user-disabled':
+        return 'This account has been disabled.';
+      case 'too-many-requests':
+        return 'Too many attempts. Please try again later.';
+      default:
+        return 'Authentication failed. Please try again.';
+    }
+  }
+}
+
+/// Custom exception for authentication errors
+class AuthException implements Exception {
+  final String message;
+  AuthException(this.message);
+  
+  @override
+  String toString() => message;
 }

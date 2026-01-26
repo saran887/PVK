@@ -230,281 +230,295 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
     }
   }
 
+  Widget _buildSectionHeader(String title, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12, top: 8),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: Colors.indigo.shade700),
+          const SizedBox(width: 8),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.indigo.shade900,
+              letterSpacing: 0.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionCard(List<Widget> children) {
+    return Card(
+      elevation: 0,
+      margin: const EdgeInsets.only(bottom: 20),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Colors.grey.shade200),
+      ),
+      color: Colors.white,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: children,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: Text(widget.isEdit ? 'Edit Product' : 'Add Product'),
+        title: Text(widget.isEdit ? 'Edit Product' : 'Add New Product'),
+        elevation: 0,
         backgroundColor: Colors.indigo.shade600,
         foregroundColor: Colors.white,
       ),
       body: Form(
         key: _formKey,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Product ID
-              TextFormField(
-                controller: _productIdController,
-                decoration: const InputDecoration(
-                  labelText: 'Product ID',
-                  prefixIcon: Icon(Icons.qr_code),
-                  border: OutlineInputBorder(),
-                  helperText: 'Unique identifier for the product',
-                ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Product ID is required';
-                  }
-                  return null;
-                },
-              ),
-
-              const SizedBox(height: 16),
-
-              // Product Name
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Product Name',
-                  prefixIcon: Icon(Icons.inventory),
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Product name is required';
-                  }
-                  return null;
-                },
-              ),
-
-              const SizedBox(height: 16),
-
-              // Item Code
-              TextFormField(
-                controller: _itemCodeController,
-                decoration: const InputDecoration(
-                  labelText: 'Item Code',
-                  prefixIcon: Icon(Icons.tag),
-                  border: OutlineInputBorder(),
-                  helperText: 'Unique item identification code',
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              // HSN Code
-              TextFormField(
-                controller: _hsnCodeController,
-                decoration: const InputDecoration(
-                  labelText: 'HSN Code',
-                  prefixIcon: Icon(Icons.confirmation_number),
-                  border: OutlineInputBorder(),
-                  helperText: 'Harmonized System of Nomenclature Code',
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              // GST Rate
-              TextFormField(
-                controller: _gstRateController,
-                decoration: const InputDecoration(
-                  labelText: 'GST Rate (%)',
-                  prefixIcon: Icon(Icons.percent),
-                  border: OutlineInputBorder(),
-                  helperText: 'Goods and Services Tax rate',
-                ),
-                keyboardType: TextInputType.number,
-              ),
-
-              const SizedBox(height: 16),
-
-              // Category
-              DropdownButtonFormField<String>(
-                value: _selectedCategory,
-                decoration: InputDecoration(
-                  labelText: 'Category',
-                  prefixIcon: const Icon(Icons.category),
-                  border: const OutlineInputBorder(),
-                  suffixIcon: IconButton(
-                    icon: const Icon(Icons.add),
-                    onPressed: _showAddCategoryDialog,
-                    tooltip: 'Add new category',
+              // --- PRODUCT DETAILS SECTION ---
+              _buildSectionHeader('Product Details', Icons.inventory),
+              _buildSectionCard([
+                TextFormField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Product Name',
+                    hintText: 'e.g. Basmati Rice 5kg',
+                    prefixIcon: Icon(Icons.title),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
                   ),
+                  validator: (value) => (value == null || value.trim().isEmpty) ? 'Product name is required' : null,
                 ),
-                items: [
-                  const DropdownMenuItem(value: null, child: Text('Select Category')),
-                  ..._categories.map((category) => DropdownMenuItem(
-                    value: category,
-                    child: Text(category),
-                  )),
-                ],
-                onChanged: (value) {
-                  setState(() {
-                    _selectedCategory = value;
-                    if (value != null) _categoryController.text = value;
-                  });
-                },
-                validator: (value) {
-                  if ((value == null || value.isEmpty) && _categoryController.text.trim().isEmpty) {
-                    return 'Category is required';
-                  }
-                  return null;
-                },
-              ),
-
-              const SizedBox(height: 16),
-
-              // Weight
-              Row(
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: TextFormField(
-                      controller: _weightController,
-                      decoration: const InputDecoration(
-                        labelText: 'Weight',
-                        prefixIcon: Icon(Icons.scale),
-                        border: OutlineInputBorder(),
-                      ),
-                      keyboardType: TextInputType.number,
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  value: _selectedCategory,
+                  decoration: InputDecoration(
+                    labelText: 'Category',
+                    prefixIcon: const Icon(Icons.category),
+                    border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.add_circle_outline),
+                      onPressed: _showAddCategoryDialog,
+                      tooltip: 'Add new category',
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      value: _selectedUnit,
-                      decoration: const InputDecoration(
-                        labelText: 'Unit',
-                        border: OutlineInputBorder(),
-                      ),
-                      items: ['kg', 'g', 'lb', 'liter', 'ml']
-                          .map((unit) => DropdownMenuItem(value: unit, child: Text(unit)))
-                          .toList(),
-                      onChanged: (value) => setState(() => _selectedUnit = value!),
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 16),
-
-              // Quantity
-              Row(
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: TextFormField(
-                      controller: _quantityController,
-                      decoration: const InputDecoration(
-                        labelText: 'Quantity',
-                        prefixIcon: Icon(Icons.inventory_2),
-                        border: OutlineInputBorder(),
-                      ),
-                      keyboardType: TextInputType.number,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      value: _selectedQuantityUnit,
-                      decoration: const InputDecoration(
-                        labelText: 'Unit',
-                        border: OutlineInputBorder(),
-                      ),
-                      items: ['pcs', 'box', 'pack', 'dozen', 'bundle']
-                          .map((unit) => DropdownMenuItem(value: unit, child: Text(unit)))
-                          .toList(),
-                      onChanged: (value) => setState(() => _selectedQuantityUnit = value!),
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 16),
-
-              // Prices
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _buyingPriceController,
-                      decoration: const InputDecoration(
-                        labelText: 'Buying Price',
-                        prefixIcon: Icon(Icons.shopping_cart),
-                        prefixText: '₹ ',
-                        border: OutlineInputBorder(),
-                      ),
-                      keyboardType: TextInputType.number,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _sellingPriceController,
-                      decoration: const InputDecoration(
-                        labelText: 'Selling Price',
-                        prefixIcon: Icon(Icons.sell),
-                        prefixText: '₹ ',
-                        border: OutlineInputBorder(),
-                      ),
-                      keyboardType: TextInputType.number,
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Selling price is required';
-                        }
-                        final price = double.tryParse(value);
-                        if (price == null || price <= 0) {
-                          return 'Please enter a valid price';
-                        }
-                        return null;
-                      },
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 16),
-
-              // Description
-              TextFormField(
-                controller: _descriptionController,
-                decoration: const InputDecoration(
-                  labelText: 'Description (Optional)',
-                  prefixIcon: Icon(Icons.description),
-                  border: OutlineInputBorder(),
+                  items: [
+                    const DropdownMenuItem(value: null, child: Text('Select Category')),
+                    ..._categories.map((category) => DropdownMenuItem(value: category, child: Text(category))),
+                  ],
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedCategory = value;
+                      if (value != null) _categoryController.text = value;
+                    });
+                  },
                 ),
-                maxLines: 3,
-              ),
-
-              const SizedBox(height: 32),
-
-              // Save Button
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _saveProduct,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.indigo.shade600,
-                    foregroundColor: Colors.white,
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _descriptionController,
+                  decoration: const InputDecoration(
+                    labelText: 'Description (Optional)',
+                    prefixIcon: Icon(Icons.notes),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
                   ),
-                  child: _isLoading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                          ),
-                        )
-                      : Text(widget.isEdit ? 'Update Product' : 'Add Product'),
+                  maxLines: 2,
                 ),
-              ),
+              ]),
+
+              // --- IDENTIFICATION SECTION ---
+              _buildSectionHeader('Identification', Icons.qr_code),
+              _buildSectionCard([
+                TextFormField(
+                  controller: _productIdController,
+                  decoration: const InputDecoration(
+                    labelText: 'Product ID / Barcode',
+                    prefixIcon: Icon(Icons.qr_code_scanner),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                  ),
+                  validator: (value) => (value == null || value.trim().isEmpty) ? 'Product ID is required' : null,
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _itemCodeController,
+                  decoration: const InputDecoration(
+                    labelText: 'Item Code',
+                    prefixIcon: Icon(Icons.tag),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                  ),
+                ),
+              ]),
+
+              // --- INVENTORY SECTION ---
+              _buildSectionHeader('Inventory & Stock', Icons.inventory_2),
+              _buildSectionCard([
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: TextFormField(
+                        controller: _weightController,
+                        decoration: const InputDecoration(
+                          labelText: 'Weight',
+                          prefixIcon: Icon(Icons.scale),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                        ),
+                        keyboardType: TextInputType.number,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        value: _selectedUnit,
+                        decoration: const InputDecoration(
+                          labelText: 'Unit',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                        ),
+                        items: ['kg', 'g', 'lb', 'liter', 'ml']
+                            .map((unit) => DropdownMenuItem(value: unit, child: Text(unit)))
+                            .toList(),
+                        onChanged: (value) => setState(() => _selectedUnit = value!),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: TextFormField(
+                        controller: _quantityController,
+                        decoration: const InputDecoration(
+                          labelText: 'Stock Quantity',
+                          prefixIcon: Icon(Icons.numbers),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                        ),
+                        keyboardType: TextInputType.number,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        value: _selectedQuantityUnit,
+                        decoration: const InputDecoration(
+                          labelText: 'Unit',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                        ),
+                        items: ['pcs', 'box', 'pack', 'dozen', 'bundle']
+                            .map((unit) => DropdownMenuItem(value: unit, child: Text(unit)))
+                            .toList(),
+                        onChanged: (value) => setState(() => _selectedQuantityUnit = value!),
+                      ),
+                    ),
+                  ],
+                ),
+              ]),
+
+              // --- PRICING & TAX SECTION ---
+              _buildSectionHeader('Pricing & Tax', Icons.payments),
+              _buildSectionCard([
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: _buyingPriceController,
+                        decoration: const InputDecoration(
+                          labelText: 'Buying Price',
+                          prefixIcon: Icon(Icons.input),
+                          prefixText: '₹ ',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                        ),
+                        keyboardType: TextInputType.number,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextFormField(
+                        controller: _sellingPriceController,
+                        decoration: const InputDecoration(
+                          labelText: 'Selling Price',
+                          prefixIcon: Icon(Icons.sell),
+                          prefixText: '₹ ',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                        ),
+                        keyboardType: TextInputType.number,
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) return 'Selling price is required';
+                          if (double.tryParse(value) == null) return 'Invalid amount';
+                          return null;
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: TextFormField(
+                        controller: _hsnCodeController,
+                        decoration: const InputDecoration(
+                          labelText: 'HSN Code',
+                          prefixIcon: Icon(Icons.list_alt),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextFormField(
+                        controller: _gstRateController,
+                        decoration: const InputDecoration(
+                          labelText: 'GST %',
+                          prefixIcon: Icon(Icons.percent),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                        ),
+                        keyboardType: TextInputType.number,
+                      ),
+                    ),
+                  ],
+                ),
+              ]),
             ],
+          ),
+        ),
+      ),
+      bottomSheet: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -5)),
+          ],
+        ),
+        child: SizedBox(
+          width: double.infinity,
+          height: 56,
+          child: ElevatedButton(
+            onPressed: _isLoading ? null : _saveProduct,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.indigo.shade600,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              elevation: 0,
+            ),
+            child: _isLoading
+                ? const CircularProgressIndicator(color: Colors.white)
+                : Text(
+                    widget.isEdit ? 'UPDATE PRODUCT' : 'SAVE PRODUCT',
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1),
+                  ),
           ),
         ),
       ),

@@ -45,7 +45,7 @@ class BillingHomeScreen extends ConsumerWidget {
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
+                            color: Colors.grey.shade300,
                             blurRadius: 8,
                             offset: const Offset(0, 2),
                           ),
@@ -112,7 +112,7 @@ class BillingHomeScreen extends ConsumerWidget {
                             borderRadius: BorderRadius.circular(12),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.blue.withOpacity(0.3),
+                                color: Colors.blue.shade200,
                                 blurRadius: 8,
                                 offset: const Offset(0, 2),
                               ),
@@ -258,7 +258,7 @@ class _QuickActionCardState extends State<_QuickActionCard> with SingleTickerPro
             border: Border.all(color: Colors.grey[300]!),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.grey.shade200,
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),

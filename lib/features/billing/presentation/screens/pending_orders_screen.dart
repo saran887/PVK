@@ -167,225 +167,187 @@ class _PendingOrdersScreenState extends ConsumerState<PendingOrdersScreen> {
                     final items = order['items'] as List<dynamic>? ?? [];
 
                     return Card(
-                      elevation: 2,
-                      margin: const EdgeInsets.only(bottom: 16),
+                      elevation: 3,
+                      margin: const EdgeInsets.only(bottom: 16, left: 4, right: 4),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(20),
                       ),
                       child: InkWell(
                         onTap: () {
                           _showOrderDetails(context, orderId, order);
                         },
-                        borderRadius: BorderRadius.circular(16),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(16),
-                            gradient: LinearGradient(
-                              colors: [
-                                Colors.white,
-                                status == 'pending' 
-                                  ? Colors.orange.shade50
-                                  : Colors.blue.shade50,
-                              ],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Expanded(
-                                      child: Row(
-                                        children: [
-                                          Container(
-                                            padding: const EdgeInsets.all(10),
-                                            decoration: BoxDecoration(
-                                              color: status == 'pending' 
-                                                ? Colors.orange.shade100
-                                                : Colors.blue.shade100,
-                                              borderRadius: BorderRadius.circular(12),
-                                            ),
-                                            child: Icon(
-                                              Icons.store,
-                                              color: status == 'pending' 
-                                                ? Colors.orange.shade700
-                                                : Colors.blue.shade700,
-                                              size: 24,
-                                            ),
+                        borderRadius: BorderRadius.circular(20),
+                        child: Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Header: Shop Name & Amount
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          shopName,
+                                          style: const TextStyle(
+                                            fontSize: 22,
+                                            fontWeight: FontWeight.bold,
+                                            height: 1.2,
                                           ),
-                                          const SizedBox(width: 12),
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  shopName,
-                                                  style: const TextStyle(
-                                                    fontSize: 18,
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                                  maxLines: 1,
-                                                  overflow: TextOverflow.ellipsis,
-                                                ),
-                                                const SizedBox(height: 4),
-                                                Text(
-                                                  'ID: ${orderId.substring(0, 8)}',
-                                                  style: TextStyle(
-                                                    color: Colors.grey[600],
-                                                    fontSize: 12,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                      decoration: BoxDecoration(
-                                        gradient: LinearGradient(
-                                          colors: status == 'pending' 
-                                            ? [Colors.orange.shade400, Colors.orange.shade600]
-                                            : [Colors.blue.shade400, Colors.blue.shade600],
                                         ),
-                                        borderRadius: BorderRadius.circular(20),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: (status == 'pending' ? Colors.orange : Colors.blue).withOpacity(0.3),
-                                            blurRadius: 4,
-                                            offset: const Offset(0, 2),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          'ID: ${orderId.substring(0, 8)}',
+                                          style: TextStyle(
+                                            color: Colors.grey[600],
+                                            fontSize: 13,
+                                            fontFamily: 'Monospace',
                                           ),
-                                        ],
-                                      ),
-                                      child: Text(
-                                        status.toUpperCase(),
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.bold,
-                                          letterSpacing: 0.5,
                                         ),
-                                      ),
+                                      ],
                                     ),
-                                  ],
-                                ),
-                                const SizedBox(height: 16),
-                                Container(
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey.shade50,
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(color: Colors.grey.shade200),
                                   ),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
                                     children: [
-                                      Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Row(
-                                            children: [
-                                              Icon(Icons.shopping_bag, size: 16, color: Colors.grey[600]),
-                                              const SizedBox(width: 6),
-                                              Text(
-                                                '$totalItems Items',
-                                                style: TextStyle(
-                                                  color: Colors.grey[700],
-                                                  fontWeight: FontWeight.w500,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                          if (createdAt != null) ...[
-                                            const SizedBox(height: 6),
-                                            Row(
-                                              children: [
-                                                Icon(Icons.access_time, size: 16, color: Colors.grey[600]),
-                                                const SizedBox(width: 6),
-                                                Text(
-                                                  DateFormat('dd MMM, hh:mm a').format(createdAt),
-                                                  style: TextStyle(
-                                                    color: Colors.grey[600],
-                                                    fontSize: 12,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ],
-                                        ],
+                                      Text(
+                                        '₹${totalAmount.toStringAsFixed(0)}',
+                                        style: TextStyle(
+                                          fontSize: 26,
+                                          fontWeight: FontWeight.w900,
+                                          color: Colors.green.shade800,
+                                        ),
                                       ),
                                       Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                        margin: const EdgeInsets.only(top: 4),
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                         decoration: BoxDecoration(
-                                          color: Colors.green.shade50,
-                                          borderRadius: BorderRadius.circular(10),
-                                          border: Border.all(color: Colors.green.shade200),
+                                          color: status == 'pending' 
+                                            ? Colors.orange.shade100 
+                                            : Colors.blue.shade100,
+                                          borderRadius: BorderRadius.circular(8),
                                         ),
                                         child: Text(
-                                          '₹${totalAmount.toStringAsFixed(2)}',
+                                          status.toUpperCase(),
                                           style: TextStyle(
-                                            fontSize: 18,
+                                            color: status == 'pending' 
+                                              ? Colors.orange.shade800 
+                                              : Colors.blue.shade800,
+                                            fontSize: 11,
                                             fontWeight: FontWeight.bold,
-                                            color: Colors.green.shade700,
+                                            letterSpacing: 0.5,
                                           ),
                                         ),
                                       ),
                                     ],
                                   ),
-                                ),
-                                const SizedBox(height: 12),
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: ElevatedButton.icon(
+                                ],
+                              ),
+                              
+                              const SizedBox(height: 20),
+                              
+                              // Info Row
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey.shade100,
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.shopping_bag_outlined, size: 18, color: Colors.grey[700]),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          '$totalItems Items',
+                                          style: TextStyle(
+                                            color: Colors.grey[800],
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  if (createdAt != null)
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey.shade100,
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.access_time, size: 18, color: Colors.grey[700]),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            DateFormat('dd MMM, hh:mm a').format(createdAt),
+                                            style: TextStyle(
+                                              color: Colors.grey[800],
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                ],
+                              ),
+
+                              const SizedBox(height: 20),
+                              
+                              // Actions
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: SizedBox(
+                                      height: 50,
+                                      child: FilledButton.icon(
                                         onPressed: () {
                                           _processBilling(context, orderId, order);
                                         },
-                                        icon: const Icon(Icons.receipt_long, size: 20),
-                                        label: const Text('Process'),
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.green.shade600,
-                                          foregroundColor: Colors.white,
-                                          padding: const EdgeInsets.symmetric(vertical: 12),
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(12),
-                                          ),
-                                          elevation: 2,
+                                        icon: const Icon(Icons.check_circle_outline),
+                                        label: const Text(
+                                          'MARK BILLED',
+                                          style: TextStyle(fontWeight: FontWeight.bold),
                                         ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: OutlinedButton.icon(
-                                        onPressed: () async {
-                                          await BillGenerator.generateAndShare(
-                                            context: context,
-                                            orderId: orderId,
-                                            order: order,
-                                          );
-                                        },
-                                        icon: const Icon(Icons.picture_as_pdf, size: 20),
-                                        label: const Text('PDF'),
-                                        style: OutlinedButton.styleFrom(
-                                          foregroundColor: Colors.blue.shade700,
-                                          side: BorderSide(color: Colors.blue.shade300, width: 1.5),
-                                          padding: const EdgeInsets.symmetric(vertical: 12),
+                                        style: FilledButton.styleFrom(
+                                          backgroundColor: Colors.green.shade700,
                                           shape: RoundedRectangleBorder(
                                             borderRadius: BorderRadius.circular(12),
                                           ),
                                         ),
                                       ),
                                     ),
-                                  ],
-                                ),
-                              ],
-                            ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  SizedBox(
+                                    height: 50,
+                                    width: 50,
+                                    child: IconButton.filledTonal(
+                                      onPressed: () async {
+                                        await BillGenerator.generateAndShare(
+                                          context: context,
+                                          orderId: orderId,
+                                          order: order,
+                                        );
+                                      },
+                                      icon: const Icon(Icons.share),
+                                      style: IconButton.styleFrom(
+                                        backgroundColor: Colors.blue.shade50,
+                                        foregroundColor: Colors.blue.shade700,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
                         ),
                       ),

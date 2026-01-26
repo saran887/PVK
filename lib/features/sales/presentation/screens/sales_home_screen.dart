@@ -3,59 +3,138 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../auth/providers/auth_provider.dart';
+import '../../../../shared/widgets/common_widgets.dart';
+
+/// Provider for sales statistics
+final salesStatsProvider = StreamProvider.family<SalesStats, String>((ref, locationId) {
+  if (locationId.isEmpty) {
+    return Stream.value(const SalesStats(todayOrders: 0, pendingOrders: 0, todayRevenue: 0));
+  }
+
+  return FirebaseFirestore.instance
+      .collection('orders')
+      .where('shopLocationId', isEqualTo: locationId)
+      .snapshots()
+      .map((snapshot) {
+        int todayOrders = 0;
+        int pendingOrders = 0;
+        double todayRevenue = 0;
+
+        final now = DateTime.now();
+        final today = DateTime(now.year, now.month, now.day);
+
+        for (var doc in snapshot.docs) {
+          final data = doc.data();
+          final createdAt = data['createdAt'] as Timestamp?;
+          final status = data['status'] as String?;
+          final amount = (data['totalAmount'] ?? 0) as num;
+
+          if (createdAt != null) {
+            final orderDate = createdAt.toDate();
+            if (orderDate.isAfter(today)) {
+              todayOrders++;
+              todayRevenue += amount.toDouble();
+            }
+          }
+
+          if (status == 'pending') {
+            pendingOrders++;
+          }
+        }
+
+        return SalesStats(
+          todayOrders: todayOrders,
+          pendingOrders: pendingOrders,
+          todayRevenue: todayRevenue,
+        );
+      });
+});
+
+class SalesStats {
+  final int todayOrders;
+  final int pendingOrders;
+  final double todayRevenue;
+
+  const SalesStats({
+    required this.todayOrders,
+    required this.pendingOrders,
+    required this.todayRevenue,
+  });
+}
 
 class SalesHomeScreen extends ConsumerWidget {
   const SalesHomeScreen({super.key});
+
+  Future<void> _confirmLogout(BuildContext context, WidgetRef ref) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Logout'),
+        content: const Text('Are you sure you want to logout?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Logout'),
+          ),
+        ],
+      ),
+    );
+    if (confirm == true) {
+      await ref.read(authRepositoryProvider).signOut();
+    }
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(currentUserProvider).asData?.value;
     final userLocationId = user?.locationId ?? '';
+    final statsAsync = ref.watch(salesStatsProvider(userLocationId));
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
         title: const Text('Sales Dashboard'),
         automaticallyImplyLeading: false,
         elevation: 0,
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
         actions: [
           IconButton(
             icon: const Icon(Icons.notifications_outlined),
+            tooltip: 'Notifications',
             onPressed: () {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Notifications - Coming Soon!')),
+                SnackBar(
+                  content: const Row(
+                    children: [
+                      Icon(Icons.info_outline, color: Colors.white),
+                      SizedBox(width: 12),
+                      Text('Notifications - Coming Soon!'),
+                    ],
+                  ),
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  margin: const EdgeInsets.all(16),
+                ),
               );
             },
           ),
           IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () async {
-              final confirm = await showDialog<bool>(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: const Text('Logout'),
-                  content: const Text('Are you sure you want to logout?'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, false),
-                      child: const Text('Cancel'),
-                    ),
-                    FilledButton(
-                      onPressed: () => Navigator.pop(context, true),
-                      child: const Text('Logout'),
-                    ),
-                  ],
-                ),
-              );
-              if (confirm == true) {
-                await ref.read(authRepositoryProvider).signOut();
-              }
-            },
+            icon: const Icon(Icons.logout_rounded),
+            tooltip: 'Logout',
+            onPressed: () => _confirmLogout(context, ref),
           ),
         ],
       ),
       body: RefreshIndicator(
         onRefresh: () async {
-          await Future.delayed(const Duration(seconds: 1));
+          ref.invalidate(salesStatsProvider(userLocationId));
+          await Future.delayed(const Duration(milliseconds: 500));
         },
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -64,278 +143,207 @@ class SalesHomeScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Welcome Card
-              Card(
-                elevation: 2,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                child: Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(16),
-                    gradient: LinearGradient(
-                      colors: [
-                        Theme.of(context).primaryColor.withOpacity(0.1),
-                        Theme.of(context).primaryColor.withOpacity(0.05),
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                  ),
-                  padding: const EdgeInsets.all(20),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).primaryColor.withOpacity(0.2),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.person,
-                          size: 32,
-                          color: Theme.of(context).primaryColor,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Welcome back,',
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              user?.name ?? 'Sales Person',
-                              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            if (user?.locationName != null && user!.locationName!.isNotEmpty) ...[
-                              const SizedBox(height: 4),
-                              Row(
-                                children: [
-                                  Icon(Icons.location_on, size: 14, color: Colors.grey[600]),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    user.locationName!,
-                                    style: TextStyle(fontSize: 13, color: Colors.grey[600]),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+              _buildWelcomeCard(context, user),
+              const SizedBox(height: 20),
+              
+              // Statistics Row
+              _buildStatsRow(statsAsync),
               const SizedBox(height: 24),
               
-              // Statistics
-              StreamBuilder<QuerySnapshot>(
-                stream: userLocationId.isNotEmpty
-                    ? FirebaseFirestore.instance
-                        .collection('orders')
-                        .where('shopLocationId', isEqualTo: userLocationId)
-                        .snapshots()
-                    : null,
-                builder: (context, snapshot) {
-                  int todayOrders = 0;
-                  int pendingOrders = 0;
-                  double todayRevenue = 0;
-
-                  if (snapshot.hasData) {
-                    final orders = snapshot.data!.docs;
-                    final now = DateTime.now();
-                    final today = DateTime(now.year, now.month, now.day);
-
-                    for (var doc in orders) {
-                      final data = doc.data() as Map<String, dynamic>;
-                      final createdAt = data['createdAt'] as Timestamp?;
-                      final status = data['status'] as String?;
-                      final amount = (data['totalAmount'] ?? 0) as num;
-
-                      if (createdAt != null) {
-                        final orderDate = createdAt.toDate();
-                        if (orderDate.isAfter(today)) {
-                          todayOrders++;
-                          todayRevenue += amount.toDouble();
-                        }
-                      }
-
-                      if (status == 'pending') {
-                        pendingOrders++;
-                      }
-                    }
-                  }
-
-                  return Row(
-                    children: [
-                      Expanded(
-                        child: _StatCard(
-                          icon: Icons.shopping_bag,
-                          label: 'Today',
-                          value: todayOrders.toString(),
-                          color: Colors.blue,
-                          isLoading: snapshot.connectionState == ConnectionState.waiting,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _StatCard(
-                          icon: Icons.pending_actions,
-                          label: 'Pending',
-                          value: pendingOrders.toString(),
-                          color: Colors.orange,
-                          isLoading: snapshot.connectionState == ConnectionState.waiting,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _StatCard(
-                          icon: Icons.currency_rupee,
-                          label: 'Revenue',
-                          value: '₹${todayRevenue.toStringAsFixed(0)}',
-                          color: Colors.green,
-                          isLoading: snapshot.connectionState == ConnectionState.waiting,
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              ),
-              const SizedBox(height: 24),
-              
-              Text(
-                'Quick Actions',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 16),
-              
-              // Quick Actions Grid
-              GridView.count(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisCount: 2,
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 12,
-                childAspectRatio: 1.3,
-                children: [
-                  _QuickActionCard(
-                    icon: Icons.add_shopping_cart,
-                    title: 'Create Order',
-                    subtitle: 'Add new order',
-                    color: Colors.green,
-                    onTap: () => context.push('/sales/create-order'),
-                  ),
-                  _QuickActionCard(
-                    icon: Icons.receipt_long,
-                    title: 'My Orders',
-                    subtitle: 'View all orders',
-                    color: Colors.orange,
-                    onTap: () => context.push('/sales/my-orders'),
-                  ),
-                  _QuickActionCard(
-                    icon: Icons.store,
-                    title: 'View Shops',
-                    subtitle: 'Browse shops',
-                    color: Colors.blue,
-                    onTap: () => context.push('/sales/shops'),
-                  ),
-                ],
-              ),
+              // Quick Actions
+              const SectionHeader(title: 'Quick Actions'),
+              const SizedBox(height: 14),
+              _buildQuickActions(context),
             ],
           ),
         ),
       ),
     );
   }
-}
 
-class _QuickActionCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final Color color;
-  final VoidCallback onTap;
-
-  const _QuickActionCard({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.color,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            gradient: LinearGradient(
-              colors: [
-                color.withOpacity(0.1),
-                color.withOpacity(0.05),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+  Widget _buildWelcomeCard(BuildContext context, dynamic user) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Theme.of(context).primaryColor.withOpacity(0.08),
+            Theme.of(context).primaryColor.withOpacity(0.03),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      padding: const EdgeInsets.all(20),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Theme.of(context).primaryColor.withOpacity(0.15),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.person_rounded,
+              size: 30,
+              color: Theme.of(context).primaryColor,
             ),
           ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.2),
-                  shape: BoxShape.circle,
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Welcome back,',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey[600],
+                  ),
                 ),
-                child: Icon(icon, size: 32, color: color),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                title,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
+                const SizedBox(height: 2),
+                Text(
+                  user?.name ?? 'Sales Person',
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                subtitle,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.grey[600],
-                ),
-              ),
-            ],
+                if (user?.locationName != null && user!.locationName!.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Icon(Icons.location_on_rounded, size: 14, color: Colors.grey[600]),
+                      const SizedBox(width: 4),
+                      Text(
+                        user.locationName!,
+                        style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
           ),
-        ),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.green.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(Icons.trending_up_rounded, color: Colors.green, size: 22),
+          ),
+        ],
       ),
+    );
+  }
+
+  Widget _buildStatsRow(AsyncValue<SalesStats> statsAsync) {
+    return statsAsync.when(
+      data: (stats) => Row(
+        children: [
+          Expanded(
+            child: _CompactStatCard(
+              icon: Icons.shopping_bag_rounded,
+              label: 'Today',
+              value: stats.todayOrders.toString(),
+              color: Colors.blue,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: _CompactStatCard(
+              icon: Icons.pending_actions_rounded,
+              label: 'Pending',
+              value: stats.pendingOrders.toString(),
+              color: Colors.orange,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: _CompactStatCard(
+              icon: Icons.currency_rupee_rounded,
+              label: 'Revenue',
+              value: '₹${_formatAmount(stats.todayRevenue)}',
+              color: Colors.green,
+            ),
+          ),
+        ],
+      ),
+      loading: () => Row(
+        children: List.generate(3, (_) => Expanded(
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 5),
+            child: const _CompactStatCard(
+              icon: Icons.hourglass_empty,
+              label: 'Loading',
+              value: '-',
+              color: Colors.grey,
+              isLoading: true,
+            ),
+          ),
+        )),
+      ),
+      error: (error, _) => ErrorCard(message: error.toString()),
+    );
+  }
+
+  String _formatAmount(double amount) {
+    if (amount >= 100000) {
+      return '${(amount / 100000).toStringAsFixed(1)}L';
+    } else if (amount >= 1000) {
+      return '${(amount / 1000).toStringAsFixed(1)}K';
+    }
+    return amount.toStringAsFixed(0);
+  }
+
+  Widget _buildQuickActions(BuildContext context) {
+    return GridView.count(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisCount: 2,
+      mainAxisSpacing: 12,
+      crossAxisSpacing: 12,
+      childAspectRatio: 1.05,
+      children: [
+        ActionCard(
+          icon: Icons.add_shopping_cart_rounded,
+          title: 'Create Order',
+          subtitle: 'Add new order',
+          iconColor: Colors.green,
+          isCompact: true,
+          onTap: () => context.push('/sales/create-order'),
+        ),
+        ActionCard(
+          icon: Icons.receipt_long_rounded,
+          title: 'My Orders',
+          subtitle: 'View all orders',
+          iconColor: Colors.orange,
+          isCompact: true,
+          onTap: () => context.push('/sales/my-orders'),
+        ),
+        ActionCard(
+          icon: Icons.store_rounded,
+          title: 'View Shops',
+          subtitle: 'Browse shops',
+          iconColor: Colors.blue,
+          isCompact: true,
+          onTap: () => context.push('/sales/shops'),
+        ),
+      ],
     );
   }
 }
 
-class _StatCard extends StatelessWidget {
+class _CompactStatCard extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
   final Color color;
   final bool isLoading;
 
-  const _StatCard({
+  const _CompactStatCard({
     required this.icon,
     required this.label,
     required this.value,
@@ -345,38 +353,39 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 1,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 24, color: color),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-            ),
-            const SizedBox(height: 4),
-            isLoading
-                ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : Text(
-                    value,
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: color,
-                    ),
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 22, color: color),
+          const SizedBox(height: 10),
+          Text(
+            label,
+            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+          ),
+          const SizedBox(height: 2),
+          isLoading
+              ? const SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: color,
                   ),
-          ],
-        ),
+                ),
+        ],
       ),
     );
   }

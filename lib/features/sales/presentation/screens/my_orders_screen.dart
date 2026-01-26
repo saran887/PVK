@@ -461,6 +461,7 @@ class _MyOrdersScreenState extends ConsumerState<MyOrdersScreen> {
                       final quantity = item['quantity'] ?? 0;
                       final price = item['price'] ?? 0;
                       final subtotal = quantity * price;
+                      final productId = item['productId'] ?? '';
 
                       return Card(
                         margin: const EdgeInsets.only(bottom: 8),
@@ -497,6 +498,44 @@ class _MyOrdersScreenState extends ConsumerState<MyOrdersScreen> {
                                         color: Colors.grey[600],
                                       ),
                                     ),
+                                    if (productId.isNotEmpty)
+                                      StreamBuilder<DocumentSnapshot>(
+                                        stream: FirebaseFirestore.instance
+                                            .collection('products')
+                                            .doc(productId)
+                                            .snapshots(),
+                                        builder: (context, snapshot) {
+                                          if (!snapshot.hasData) {
+                                            return const SizedBox.shrink();
+                                          }
+                                          
+                                          final productData = snapshot.data?.data() as Map<String, dynamic>?;
+                                          if (productData == null) {
+                                            return const SizedBox.shrink();
+                                          }
+                                          
+                                          final stock = int.tryParse(productData['quantity']?.toString() ?? '0') ?? 0;
+                                          final stockColor = stock < 10 ? Colors.red : (stock < 50 ? Colors.orange : Colors.green);
+                                          
+                                          return Padding(
+                                            padding: const EdgeInsets.only(top: 4),
+                                            child: Row(
+                                              children: [
+                                                Icon(Icons.warehouse, size: 12, color: stockColor),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  'Stock: $stock ${productData['quantityUnit'] ?? 'pcs'}',
+                                                  style: TextStyle(
+                                                    fontSize: 11,
+                                                    color: stockColor,
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                        },
+                                      ),
                                   ],
                                 ),
                               ),

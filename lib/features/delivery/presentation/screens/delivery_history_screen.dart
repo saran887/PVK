@@ -139,13 +139,59 @@ class DeliveryHistoryScreen extends ConsumerWidget {
       final quantity = item['quantity'] ?? 0;
       final price = item['price'] ?? 0;
       final total = quantity * price;
+      final productId = item['productId'] ?? '';
 
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 4),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Expanded(child: Text('$name x $quantity')),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('$name x $quantity'),
+                  if (productId.isNotEmpty)
+                    StreamBuilder<DocumentSnapshot>(
+                      stream: FirebaseFirestore.instance
+                          .collection('products')
+                          .doc(productId)
+                          .snapshots(),
+                      builder: (context, snapshot) {
+                        if (!snapshot.hasData) {
+                          return const SizedBox.shrink();
+                        }
+                        
+                        final productData = snapshot.data?.data() as Map<String, dynamic>?;
+                        if (productData == null) {
+                          return const SizedBox.shrink();
+                        }
+                        
+                        final stock = int.tryParse(productData['quantity']?.toString() ?? '0') ?? 0;
+                        final stockColor = stock < 10 ? Colors.red : (stock < 50 ? Colors.orange : Colors.green);
+                        
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 2),
+                          child: Row(
+                            children: [
+                              Icon(Icons.inventory_2, size: 12, color: stockColor),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Stock: $stock ${productData['quantityUnit'] ?? 'pcs'}',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: stockColor,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                ],
+              ),
+            ),
             Text('₹${total.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold)),
           ],
         ),

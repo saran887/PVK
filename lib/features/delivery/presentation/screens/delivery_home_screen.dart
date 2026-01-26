@@ -74,7 +74,7 @@ class DeliveryHomeScreen extends ConsumerWidget {
                                   borderRadius: BorderRadius.circular(12),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.blue.withOpacity(0.3),
+                                      color: Colors.blue.shade200,
                                       blurRadius: 8,
                                       offset: const Offset(0, 4),
                                     ),
@@ -264,7 +264,7 @@ class _DeliveryStatCard extends StatelessWidget {
         border: Border.all(color: Colors.grey[200]!),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.grey.shade100,
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),
@@ -337,7 +337,7 @@ class _ActionCard extends StatelessWidget {
         border: Border.all(color: Colors.grey[200]!),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.grey.shade100,
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -348,7 +348,7 @@ class _ActionCard extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(16),
-          splashColor: _getIconColor().withOpacity(0.1),
+          splashColor: _getBackgroundColor(),
           child: Padding(
             padding: const EdgeInsets.all(18),
             child: Column(

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../auth/providers/auth_provider.dart';
 
 class ReadyToDeliverScreen extends ConsumerWidget {
@@ -75,70 +76,124 @@ class ReadyToDeliverScreen extends ConsumerWidget {
               final totalItems = order['totalItems'] ?? 0;
               final billedAt = order['billedAt'] as Timestamp?;
 
-              return Card(
-                margin: const EdgeInsets.only(bottom: 12),
-                child: ExpansionTile(
-                  leading: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [Colors.blue.shade400, Colors.blue.shade600],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Center(
-                      child: Text(
-                        '${index + 1}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
+              final shopId = order['shopId'] as String?;
+
+              return StreamBuilder<DocumentSnapshot>(
+                stream: shopId != null 
+                    ? FirebaseFirestore.instance.collection('shops').doc(shopId).snapshots()
+                    : null,
+                builder: (context, shopSnapshot) {
+                  final shopData = shopSnapshot.data?.data() as Map<String, dynamic>?;
+                  final shopPhone = shopData?['phone'] as String? ?? '';
+                  final shopAddress = shopData?['address'] as String? ?? '';
+
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    child: ExpansionTile(
+                      leading: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [Colors.blue.shade400, Colors.blue.shade600],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          shape: BoxShape.circle,
                         ),
-                      ),
-                    ),
-                  ),
-                  title: Text(shopName, style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 4),
-                      Text('Order ID: ${orderId.substring(0, 8)}...'),
-                      Text('Items: $totalItems | Amount: ₹${totalAmount.toStringAsFixed(2)}'),
-                      if (billedAt != null)
-                        Text('Billed: ${DateFormat('dd MMM yyyy, hh:mm a').format(billedAt.toDate())}',
-                          style: const TextStyle(fontSize: 12)),
-                    ],
-                  ),
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          const Text('Order Items:', style: TextStyle(fontWeight: FontWeight.bold)),
-                          const SizedBox(height: 8),
-                          ..._buildOrderItems(order['items'] as List<dynamic>? ?? []),
-                          const SizedBox(height: 16),
-                          ElevatedButton.icon(
-                            onPressed: () => _markAsDelivered(
-                              context,
-                              orderId: orderId,
-                              amount: (totalAmount is num) ? totalAmount.toDouble() : 0,
-                            ),
-                            icon: const Icon(Icons.check_circle),
-                            label: const Text('Mark as Delivered'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.black,
-                              foregroundColor: Colors.white,
+                        child: Center(
+                          child: Text(
+                            '${index + 1}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
+                        ),
+                      ),
+                      title: Text(shopName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 4),
+                          Text('Order ID: ${orderId.substring(0, 8)}...'),
+                          Text('Items: $totalItems | Amount: ₹${totalAmount.toStringAsFixed(2)}'),
+                          if (billedAt != null)
+                            Text('Billed: ${DateFormat('dd MMM yyyy, hh:mm a').format(billedAt.toDate())}',
+                              style: const TextStyle(fontSize: 12)),
+                          if (shopAddress.isNotEmpty) ...[
+                            const SizedBox(height: 8),
+                            InkWell(
+                              onTap: () async {
+                                final url = Uri.parse('https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(shopAddress)}');
+                                if (await canLaunchUrl(url)) {
+                                  await launchUrl(url, mode: LaunchMode.externalApplication);
+                                }
+                              },
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.map, size: 14, color: Colors.blue),
+                                  const SizedBox(width: 4),
+                                  Expanded(
+                                    child: Text(
+                                      shopAddress,
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.blue,
+                                        decoration: TextDecoration.underline,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ],
                       ),
+                      trailing: shopPhone.isNotEmpty
+                          ? IconButton.filledTonal(
+                              icon: const Icon(Icons.call, color: Colors.green),
+                              onPressed: () async {
+                                final url = Uri.parse('tel:$shopPhone');
+                                if (await canLaunchUrl(url)) {
+                                  await launchUrl(url);
+                                }
+                              },
+                            )
+                          : null,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              const Text('Order Items:', style: TextStyle(fontWeight: FontWeight.bold)),
+                              const SizedBox(height: 8),
+                              ..._buildOrderItems(order['items'] as List<dynamic>? ?? []),
+                              const SizedBox(height: 16),
+                              ElevatedButton.icon(
+                                onPressed: () => _markAsDelivered(
+                                  context,
+                                  orderId: orderId,
+                                  amount: (totalAmount is num) ? totalAmount.toDouble() : 0,
+                                ),
+                                icon: const Icon(Icons.check_circle),
+                                label: const Text('Mark as Delivered'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.black,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  );
+                }
               );
             },
           );
@@ -153,13 +208,59 @@ class ReadyToDeliverScreen extends ConsumerWidget {
       final quantity = item['quantity'] ?? 0;
       final price = item['price'] ?? 0;
       final total = quantity * price;
+      final productId = item['productId'] ?? '';
 
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 4),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Expanded(child: Text('$name x $quantity')),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('$name x $quantity'),
+                  if (productId.isNotEmpty)
+                    StreamBuilder<DocumentSnapshot>(
+                      stream: FirebaseFirestore.instance
+                          .collection('products')
+                          .doc(productId)
+                          .snapshots(),
+                      builder: (context, snapshot) {
+                        if (!snapshot.hasData) {
+                          return const SizedBox.shrink();
+                        }
+                        
+                        final productData = snapshot.data?.data() as Map<String, dynamic>?;
+                        if (productData == null) {
+                          return const SizedBox.shrink();
+                        }
+                        
+                        final stock = int.tryParse(productData['quantity']?.toString() ?? '0') ?? 0;
+                        final stockColor = stock < 10 ? Colors.red : (stock < 50 ? Colors.orange : Colors.green);
+                        
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 2),
+                          child: Row(
+                            children: [
+                              Icon(Icons.inventory_2, size: 12, color: stockColor),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Stock: $stock ${productData['quantityUnit'] ?? 'pcs'}',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: stockColor,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                ],
+              ),
+            ),
             Text('₹${total.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold)),
           ],
         ),

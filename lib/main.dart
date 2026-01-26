@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,26 +7,6 @@ import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 
 void main() async {
-    // DEBUG: Seed Firestore with test user code 2000
-    Future<void> addTestUser() async {
-      
-      await FirebaseFirestore.instance.collection('users').add({
-        'code': '2000',
-        'name': 'Test User',
-        'email': 'testuser@example.com',
-      });
-    }
-    
-    // DEBUG: Remove all products from Firestore
-    Future<void> removeAllProducts() async {
-      final products = await FirebaseFirestore.instance.collection('products').get();
-      for (var doc in products.docs) {
-        await doc.reference.delete();
-      }
-      debugPrint('✅ Removed ${products.docs.length} products from database');
-    }
-    
-    // Uncomment to run once
   WidgetsFlutterBinding.ensureInitialized();
   
   try {
@@ -35,9 +14,6 @@ void main() async {
       options: DefaultFirebaseOptions.currentPlatform,
     );
     debugPrint('✅ Firebase initialized successfully');
-    // Run Firestore seed after Firebase is initialized
-    // await addTestUser(); // Comment out after first run
-    // await removeAllProducts(); // Comment out after first run
   } catch (e, stackTrace) {
     debugPrint('❌ Firebase initialization error: $e');
     debugPrint('Stack trace: $stackTrace');
@@ -47,6 +23,16 @@ void main() async {
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
+
+  // Set system UI overlay style for better visual appearance
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.dark,
+      systemNavigationBarColor: Colors.white,
+      systemNavigationBarIconBrightness: Brightness.dark,
+    ),
+  );
 
   runApp(
     const ProviderScope(

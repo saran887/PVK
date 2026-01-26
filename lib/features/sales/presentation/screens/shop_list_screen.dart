@@ -38,17 +38,17 @@ class _ShopListScreenState extends ConsumerState<ShopListScreen> {
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(70),
+          preferredSize: const Size.fromHeight(80),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
                 hintText: 'Search shops...',
-                prefixIcon: const Icon(Icons.search, color: Colors.black87),
+                prefixIcon: const Icon(Icons.search, color: Colors.black87, size: 28),
                 suffixIcon: _searchQuery.isNotEmpty
                     ? IconButton(
-                        icon: const Icon(Icons.clear),
+                        icon: const Icon(Icons.clear, size: 28),
                         onPressed: () {
                           setState(() {
                             _searchController.clear();
@@ -59,11 +59,13 @@ class _ShopListScreenState extends ConsumerState<ShopListScreen> {
                     : null,
                 filled: true,
                 fillColor: Colors.white,
+                contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(16),
                   borderSide: BorderSide(color: Colors.grey[300]!),
                 ),
               ),
+              style: const TextStyle(fontSize: 16),
               onChanged: (value) {
                 setState(() {
                   _searchQuery = value.toLowerCase();
@@ -168,35 +170,35 @@ class _ShopListScreenState extends ConsumerState<ShopListScreen> {
               final gst = shop['gst'] ?? '';
 
               return Card(
-                margin: const EdgeInsets.only(bottom: 12),
-                elevation: 0,
+                margin: const EdgeInsets.only(bottom: 16),
+                elevation: 2,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(16),
                   side: BorderSide(color: Colors.grey[200]!),
                 ),
                 child: InkWell(
                   onTap: () => _showShopDetails(context, shop, shopId),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(16),
                   child: Padding(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(20),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
                           children: [
                             CircleAvatar(
-                              radius: 24,
+                              radius: 28,
                               backgroundColor: Colors.grey[200],
                               child: Text(
                                 name.isNotEmpty ? name[0].toUpperCase() : '?',
                                 style: const TextStyle(
                                   color: Colors.black,
                                   fontWeight: FontWeight.bold,
-                                  fontSize: 20,
+                                  fontSize: 24,
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 12),
+                            const SizedBox(width: 16),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -205,15 +207,15 @@ class _ShopListScreenState extends ConsumerState<ShopListScreen> {
                                     name,
                                     style: const TextStyle(
                                       fontWeight: FontWeight.bold,
-                                      fontSize: 16,
+                                      fontSize: 18,
                                     ),
                                   ),
                                   if (gst.isNotEmpty) ...[
-                                    const SizedBox(height: 2),
+                                    const SizedBox(height: 4),
                                     Text(
                                       'GST: $gst',
                                       style: TextStyle(
-                                        fontSize: 11,
+                                        fontSize: 13,
                                         color: Colors.grey[600],
                                       ),
                                     ),
@@ -221,59 +223,63 @@ class _ShopListScreenState extends ConsumerState<ShopListScreen> {
                                 ],
                               ),
                             ),
-                            const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+                            const Icon(Icons.arrow_forward_ios, size: 20, color: Colors.grey),
                           ],
                         ),
                         if (address.isNotEmpty || phone.isNotEmpty) ...[
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 16),
                           const Divider(height: 1),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 16),
                         ],
                         if (address.isNotEmpty) ...[
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Icon(Icons.location_on, size: 16, color: Colors.grey[600]),
-                              const SizedBox(width: 8),
+                              Icon(Icons.location_on, size: 20, color: Colors.grey[600]),
+                              const SizedBox(width: 12),
                               Expanded(
                                 child: Text(
                                   address,
-                                  style: TextStyle(fontSize: 13, color: Colors.grey[700]),
+                                  style: TextStyle(fontSize: 15, color: Colors.grey[800]),
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 12),
                         ],
                         if (phone.isNotEmpty) ...[
                           Row(
                             children: [
-                              Icon(Icons.phone, size: 16, color: Colors.grey[600]),
-                              const SizedBox(width: 8),
+                              Icon(Icons.phone, size: 20, color: Colors.grey[600]),
+                              const SizedBox(width: 12),
                               Expanded(
                                 child: Text(
                                   phone,
-                                  style: TextStyle(fontSize: 13, color: Colors.grey[700]),
+                                  style: TextStyle(fontSize: 15, color: Colors.grey[800]),
                                 ),
                               ),
-                              IconButton(
-                                icon: const Icon(Icons.phone, size: 20, color: Colors.green),
-                                onPressed: () => _makePhoneCall(phone),
-                                tooltip: 'Call',
+                              SizedBox(
+                                width: 48,
+                                height: 48,
+                                child: IconButton.filledTonal(
+                                  icon: const Icon(Icons.call, size: 24, color: Colors.green),
+                                  onPressed: () => _makePhoneCall(phone),
+                                  tooltip: 'Call',
+                                ),
                               ),
                             ],
                           ),
                         ],
                         if (email.isNotEmpty) ...[
-                          const SizedBox(height: 4),
+                          const SizedBox(height: 8),
                           Row(
                             children: [
-                              Icon(Icons.email, size: 16, color: Colors.grey[600]),
-                              const SizedBox(width: 8),
+                              Icon(Icons.email, size: 20, color: Colors.grey[600]),
+                              const SizedBox(width: 12),
                               Expanded(
                                 child: Text(
                                   email,
-                                  style: TextStyle(fontSize: 13, color: Colors.grey[700]),
+                                  style: TextStyle(fontSize: 15, color: Colors.grey[800]),
                                 ),
                               ),
                             ],

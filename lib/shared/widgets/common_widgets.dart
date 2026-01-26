@@ -411,10 +411,10 @@ class SectionHeader extends StatelessWidget {
   }
 }
 
-/// A simple error display card
-class ErrorCard extends StatelessWidget {
+/// A simple compact error display card
+class CompactErrorCard extends StatelessWidget {
   final String message;
-  const ErrorCard({super.key, required this.message});
+  const CompactErrorCard({super.key, required this.message});
 
   @override
   Widget build(BuildContext context) {

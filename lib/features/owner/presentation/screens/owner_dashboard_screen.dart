@@ -282,7 +282,7 @@ class OwnerDashboardScreen extends ConsumerWidget {
           child: CircularProgressIndicator(),
         ),
       ),
-      error: (error, _) => ErrorCard(message: error.toString()),
+      error: (error, _) => CompactErrorCard(message: error.toString()),
     );
   }
 

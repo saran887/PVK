@@ -41,6 +41,9 @@ app.*.map.json
 # Seed node_modules
 seed/node_modules/
 
+# Backend node_modules
+backend/node_modules/
+
 # Scripts
 scripts/service-account-key.json
 scripts/node_modules/

@@ -39,7 +39,7 @@ final currentUserProvider = StreamProvider<UserModel?>((ref) {
           .snapshots()
           .map((doc) {
             if (doc.exists && doc.data() != null) {
-              return UserModel.fromFirestore(doc.data()!);
+              return UserModel.fromFirestore(doc.data()!, id: doc.id);
             }
             return null;
           })

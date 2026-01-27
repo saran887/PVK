@@ -10,7 +10,7 @@ import 'package:printing/printing.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:whatsapp_share2/whatsapp_share2.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class BillGenerator {
   // Company Details
@@ -861,10 +861,12 @@ class BillGenerator {
     debugPrint('📱 Normalized WhatsApp number: $normalized');
 
     try {
-      await WhatsappShare.share(
-        phone: normalized,
-        text: summary.toString(),
-      );
+      final whatsappUrl = Uri.parse("https://wa.me/$normalized?text=${Uri.encodeFull(summary.toString())}");
+      if (await canLaunchUrl(whatsappUrl)) {
+        await launchUrl(whatsappUrl, mode: LaunchMode.externalApplication);
+      } else {
+        throw Exception('Could not launch WhatsApp');
+      }
       debugPrint('✅ WhatsApp summary sent successfully');
     } catch (e) {
       debugPrint('❌ WhatsApp share failed: $e');

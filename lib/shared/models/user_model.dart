@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../enums/app_enums.dart';
 
 class UserModel {
+  final String? uid;
   final String name;
   final String email;
   final String code;
@@ -15,6 +16,7 @@ class UserModel {
   final DateTime? updatedAt;
 
   UserModel({
+    this.uid,
     required this.name,
     required this.email,
     required this.code,
@@ -28,8 +30,9 @@ class UserModel {
     this.updatedAt,
   });
 
-  factory UserModel.fromFirestore(Map<String, dynamic> data) {
+  factory UserModel.fromFirestore(Map<String, dynamic> data, {String? id}) {
     return UserModel(
+      uid: id,
       name: data['name'] ?? '',
       email: data['email'] ?? '',
       code: data['code']?.toString() ?? '',

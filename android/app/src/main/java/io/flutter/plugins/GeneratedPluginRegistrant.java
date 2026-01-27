@@ -70,10 +70,5 @@ public final class GeneratedPluginRegistrant {
     } catch (Exception e) {
       Log.e(TAG, "Error registering plugin url_launcher_android, io.flutter.plugins.urllauncher.UrlLauncherPlugin", e);
     }
-    try {
-      flutterEngine.getPlugins().add(new com.example.whatsapp_share.WhatsappShare());
-    } catch (Exception e) {
-      Log.e(TAG, "Error registering plugin whatsapp_share2, com.example.whatsapp_share.WhatsappShare", e);
-    }
   }
 }

@@ -66,12 +66,6 @@
 @import url_launcher_ios;
 #endif
 
-#if __has_include(<whatsapp_share2/WhatsappShare.h>)
-#import <whatsapp_share2/WhatsappShare.h>
-#else
-@import whatsapp_share2;
-#endif
-
 @implementation GeneratedPluginRegistrant
 
 + (void)registerWithRegistry:(NSObject<FlutterPluginRegistry>*)registry {
@@ -85,7 +79,6 @@
   [PrintingPlugin registerWithRegistrar:[registry registrarForPlugin:@"PrintingPlugin"]];
   [FPPSharePlusPlugin registerWithRegistrar:[registry registrarForPlugin:@"FPPSharePlusPlugin"]];
   [URLLauncherPlugin registerWithRegistrar:[registry registrarForPlugin:@"URLLauncherPlugin"]];
-  [WhatsappShare registerWithRegistrar:[registry registrarForPlugin:@"WhatsappShare"]];
 }
 
 @end

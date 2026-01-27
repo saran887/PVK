@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'dart:math';
 import '../../../../shared/enums/app_enums.dart';
+import '../../../auth/providers/auth_provider.dart';
 
 class AddPersonScreen extends ConsumerStatefulWidget {
   final String? userId;
@@ -277,7 +278,21 @@ class _AddPersonScreenState extends ConsumerState<AddPersonScreen> {
                 prefixIcon: Icon(Icons.admin_panel_settings),
               ),
               items: UserRole.values
-                  .where((role) => role != UserRole.admin && role != UserRole.owner)
+                  .where((role) {
+                    // Always include the current role to prevent Dropdown crash
+                    if (role == _selectedRole) return true;
+                    
+                    final currentUser = ref.watch(currentUserProvider).value;
+                    final isOwner = currentUser?.role == UserRole.owner;
+                    
+                    // Owners can add Admins and others
+                    if (isOwner) {
+                      return role != UserRole.owner; // Cannot add another owner easily
+                    }
+                    
+                    // Otherwise filter out sensitive roles for assignment
+                    return role != UserRole.admin && role != UserRole.owner;
+                  })
                   .map((role) {
                 return DropdownMenuItem(
                   value: role,

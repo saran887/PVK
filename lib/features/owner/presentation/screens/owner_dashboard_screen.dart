@@ -8,6 +8,18 @@ import 'package:pkv2/shared/widgets/common_widgets.dart';
 
 /// Provider for owner dashboard statistics
 final ownerStatsProvider = StreamProvider<OwnerStats>((ref) {
+  final authState = ref.watch(authStateProvider);
+  
+  if (authState.asData?.value == null) {
+    return Stream.value(const OwnerStats(
+      totalRevenue: 0, 
+      todayRevenue: 0, 
+      todayOrders: 0, 
+      lowStockCount: 0, 
+      activeShopsCount: 0,
+    ));
+  }
+
   final ordersStream = FirebaseFirestore.instance.collection('orders').snapshots();
   final productsStream = FirebaseFirestore.instance.collection('products').snapshots();
   final shopsStream = FirebaseFirestore.instance
@@ -139,13 +151,28 @@ class OwnerDashboardScreen extends ConsumerWidget {
                                       'Business Summary',
                                       style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 13, letterSpacing: 1),
                                     ),
-                                    Text(
-                                      user?.name ?? 'Owner',
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 24,
-                                        fontWeight: FontWeight.w900,
-                                      ),
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            user?.name ?? 'Owner',
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 24,
+                                              fontWeight: FontWeight.w900,
+                                            ),
+                                          ),
+                                        ),
+                                        IconButton(
+                                          icon: const Icon(Icons.edit_note_rounded, color: Colors.white70),
+                                          onPressed: () {
+                                            if (user?.uid != null) {
+                                              context.push('/admin/add-person?userId=${user!.uid}&isEdit=true');
+                                            }
+                                          },
+                                          tooltip: 'Edit Profile',
+                                        ),
+                                      ],
                                     ),
                                   ],
                                 ),

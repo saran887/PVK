@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:go_router/go_router.dart';
+import 'package:pkv2/features/auth/providers/auth_provider.dart';
 
 class OwnerUsersScreen extends ConsumerStatefulWidget {
   const OwnerUsersScreen({super.key});
@@ -138,10 +139,24 @@ class _OwnerUsersScreenState extends ConsumerState<OwnerUsersScreen> {
   }
 
   Widget _buildUserList() {
+    final authState = ref.watch(authStateProvider);
+    
+    // Don't even try to build the list if user is not authenticated
+    if (authState.asData?.value == null) {
+      return const Center(child: Text('Loading authentication...'));
+    }
+
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance.collection('users').snapshots(),
+      stream: FirebaseFirestore.instance
+          .collection('users')
+          .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
+          // If permission denied happens immediately after logout, 
+          // we show a cleaner message or nothing while redirecting.
+          if (snapshot.error.toString().contains('permission-denied')) {
+            return const Center(child: CircularProgressIndicator());
+          }
           return Center(child: Text('Error: ${snapshot.error}'));
         }
 

@@ -2,7 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:go_router/go_router.dart';
+import 'package:sendotp_flutter_sdk/sendotp_flutter_sdk.dart';
+import '../../../../core/config/app_config.dart';
 import '../../providers/auth_provider.dart';
+import '../../../../shared/models/user_model.dart';
+import '../../../../shared/enums/app_enums.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -14,8 +20,24 @@ class LoginScreen extends ConsumerStatefulWidget {
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final List<TextEditingController> _controllers = List.generate(4, (_) => TextEditingController());
   final List<FocusNode> _focusNodes = List.generate(4, (_) => FocusNode());
+  
+  // OTP related
+  final List<TextEditingController> _otpControllers = List.generate(4, (_) => TextEditingController());
+  final List<FocusNode> _otpFocusNodes = List.generate(4, (_) => FocusNode());
+  bool _isOtpSent = false;
+  String? _verificationId;
+  String? _reqId; // Added for MSG91 OTP
+  UserModel? _pendingUser;
+
   bool _isLoading = false;
   bool _showDemoCodes = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize MSG91 OTP Widget
+    OTPWidget.initializeWidget(AppConfig.msg91WidgetCode, AppConfig.msg91AuthToken);
+  }
 
   @override
   void dispose() {
@@ -25,10 +47,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     for (var node in _focusNodes) {
       node.dispose();
     }
+    for (var controller in _otpControllers) {
+      controller.dispose();
+    }
+    for (var node in _otpFocusNodes) {
+      node.dispose();
+    }
     super.dispose();
   }
 
   String get _enteredCode => _controllers.map((c) => c.text).join();
+  String get _enteredOtp => _otpControllers.map((c) => c.text).join();
 
   Widget _buildCodeBox(int index) {
     final hasValue = _controllers[index].text.isNotEmpty;
@@ -46,10 +75,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         style: const TextStyle(
           fontSize: 28,
           fontWeight: FontWeight.bold,
-          color: Colors.black87,
+          color: Colors.black, // Solid black
         ),
         decoration: InputDecoration(
           counterText: '',
+          contentPadding: EdgeInsets.symmetric(vertical: 12),
           filled: true,
           fillColor: hasValue ? Colors.blue.shade50 : Colors.grey[100],
           border: OutlineInputBorder(
@@ -77,12 +107,162 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             _focusNodes[index - 1].requestFocus();
           }
           // Auto-submit when all 4 digits are entered
-          if (_enteredCode.length == 4) {
+          if (_enteredCode.length == 4 && !_isOtpSent) {
             _handleLogin();
           }
         },
       ),
     );
+  }
+
+  Widget _buildOtpBox(int index) {
+    final hasValue = _otpControllers[index].text.isNotEmpty;
+    
+    return SizedBox(
+      width: 65,
+      height: 65,
+      child: TextField(
+        controller: _otpControllers[index],
+        focusNode: _otpFocusNodes[index],
+        textAlign: TextAlign.center,
+        keyboardType: TextInputType.number,
+        maxLength: 1,
+        obscureText: false,
+        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+        style: const TextStyle(
+          fontSize: 28,
+          fontWeight: FontWeight.bold,
+          color: Colors.black, // Solid black for best visibility
+        ),
+        decoration: InputDecoration(
+          counterText: '',
+          contentPadding: EdgeInsets.zero,
+          filled: true,
+          fillColor: hasValue ? Colors.green.shade50 : Colors.grey[100],
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(
+              color: hasValue ? Colors.green.shade200 : Colors.grey[300]!,
+              width: 1.5,
+            ),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: Colors.green, width: 2.5),
+          ),
+        ),
+        onChanged: (value) {
+          setState(() {});
+          if (value.isNotEmpty && index < 3) {
+            _otpFocusNodes[index + 1].requestFocus();
+          }
+          if (value.isEmpty && index > 0) {
+            _otpFocusNodes[index - 1].requestFocus();
+          }
+          if (_enteredOtp.length == 4) {
+            _verifyOtp();
+          }
+        },
+      ),
+    );
+  }
+
+  Future<void> _sendOtp(UserModel user) async {
+    final phoneNumber = user.phone.trim();
+    if (phoneNumber.isEmpty) {
+      _showMessage('No registered phone number found for this account', isError: true);
+      return;
+    }
+
+    // MSG91 requires country code without '+' (e.g. 91)
+    String countryCode = '91';
+    
+    setState(() {
+      _isLoading = true;
+      _pendingUser = user;
+    });
+    
+    try {
+      // Send OTP using MSG91 SDK
+      final response = await OTPWidget.sendOTP({
+        'identifier': '$countryCode$phoneNumber'
+      });
+      
+      if (response != null && response['type'] == 'success') {
+        setState(() {
+          _reqId = response['message']; // Store reqId
+          _isOtpSent = true;
+          _isLoading = false;
+        });
+        _showMessage('OTP sent to registered number ending in ${phoneNumber.substring(phoneNumber.length - 3)}', isError: false);
+        _otpFocusNodes[0].requestFocus();
+      } else {
+        throw Exception(response?['message'] ?? 'Failed to send OTP');
+      }
+    } catch (e) {
+      debugPrint('❌ Error sending OTP: $e');
+      _showMessage('Failed to send OTP. Try again.', isError: true);
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _verifyOtp() async {
+    if (_enteredOtp.length < 4) return;
+    if (_reqId == null) {
+      _showMessage('Session expired. Resend OTP.', isError: true);
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      // Verify OTP using MSG91 SDK
+      final response = await OTPWidget.verifyOTP({
+        'reqId': _reqId!,
+        'otp': _enteredOtp,
+      });
+      
+      if (response != null && response['type'] == 'success') {
+        // If verification succeeds, proceed to handle final login
+        await _signInAfterVerification();
+      } else {
+        _showMessage(response?['message'] ?? 'Invalid OTP', isError: true);
+        _clearOtp();
+      }
+    } catch (e) {
+      debugPrint('❌ OTP verification error: $e');
+      _showMessage('Invalid OTP. Please try again.', isError: true);
+      _clearOtp();
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _signInAfterVerification() async {
+    try {
+      final authRepo = ref.read(authRepositoryProvider);
+      // Now use the original access code to sign in with email/password 
+      // This ensures we get all the user metadata/role etc.
+      await authRepo.signInWithCode(_enteredCode);
+      if (mounted) {
+        _showMessage('Login Successful!', isError: false);
+      }
+    } catch (e) {
+      debugPrint('❌ Final sign-in error: $e');
+      if (mounted) _showMessage('Authentication failed: $e', isError: true);
+      _clearCode();
+    }
+  }
+
+  void _clearOtp() {
+    for (var c in _otpControllers) {
+      c.clear();
+    }
+    _otpFocusNodes[0].requestFocus();
+    setState(() {});
   }
 
   Future<void> _handleLogin() async {
@@ -124,11 +304,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       final userData = userDoc.data() as Map<String, dynamic>;
       debugPrint('✅ Found user: ${userData['name']} (${userData['role']})');
 
-      await authRepo.signInWithCode(code);
-      debugPrint('✅ Successfully signed in');
-
-      if (mounted) {
-        _showMessage('Welcome, ${userData['name']}!', isError: false);
+      final user = UserModel.fromFirestore(userData, id: userDoc.id);
+      
+      // Special check for Owner and Admin - Send OTP automatically
+      if (user.code == '1000' || user.code == '1111' || user.role == UserRole.owner || user.role == UserRole.admin) {
+        debugPrint('🔐 Role-based security triggered for: ${user.role}');
+        await _sendOtp(user);
+      } else {
+        // Direct login for other roles
+        await authRepo.signInWithCode(code);
+        if (mounted) {
+          _showMessage('Welcome, ${user.name}!', isError: false);
+        }
       }
     } catch (e) {
       debugPrint('❌ Error signing in: $e');
@@ -168,6 +355,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     for (var controller in _controllers) {
       controller.clear();
     }
+    for (var controller in _otpControllers) {
+      controller.clear();
+    }
+    _isOtpSent = false;
+    _verificationId = null;
+    _reqId = null;
+    _pendingUser = null;
     _focusNodes[0].requestFocus();
     setState(() {});
   }
@@ -193,21 +387,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 // App Logo/Icon
                 Container(
                   padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.lock_outlined,
-                    size: 60,
-                    color: Theme.of(context).primaryColor,
+                  child: Image.asset(
+                    'assets/images/logo.png',
+                    height: 150,
+                    
                   ),
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 16),
                 Text(
-                  'Distribution Management',
+                  'PVK Agency',
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                     fontWeight: FontWeight.bold,
+                    color: Colors.red.shade700,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -231,9 +422,46 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ],
                   ],
                 ),
+
+                if (_isOtpSent) ...[
+                  const SizedBox(height: 32),
+                  const Text(
+                    'Enter 4-digit OTP',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.green,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  if (_pendingUser != null)
+                    Text(
+                      'Sent to: ******${_pendingUser!.phone.substring(_pendingUser!.phone.length - 3)}',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[600],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  const SizedBox(height: 16),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        for (int i = 0; i < 4; i++) ...[
+                          _buildOtpBox(i),
+                          if (i < 3) const SizedBox(width: 8),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+
                 const SizedBox(height: 32),
                 
                 // Sign In Button or Loading
+                if (!_isOtpSent && _pendingUser == null)
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 200),
                   child: _isLoading
@@ -257,6 +485,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ),
                           ),
                         ),
+                ),
+
+                if (_isOtpSent)
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _isLoading || _enteredOtp.length < 4 ? null : _verifyOtp,
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      backgroundColor: Colors.green,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    child: _isLoading 
+                      ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                      : const Text('Verify & Login', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  ),
                 ),
                 
                 // Clear Button

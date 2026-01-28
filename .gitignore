@@ -51,6 +51,7 @@ scripts/node_modules/
 
 # Firebase API keys (use firebase_options_local.dart locally)
 lib/firebase_options_local.dart
+lib/core/config/app_config.dart
 android/app/google-services.json
 
 # Build outputs

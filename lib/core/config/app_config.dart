@@ -4,13 +4,13 @@ class AppConfig {
   // Example: flutter run --dart-define=MSG91_WIDGET_ID=xxx
   
   static const String msg91WidgetCode = String.fromEnvironment(
-    'MSG91_WIDGET_ID', 
-    defaultValue: '3661416f5050313030353039'
+    'MSG91_WIDGET_ID',
+    defaultValue: '', // Provide this via --dart-define=MSG91_WIDGET_ID=xxx
   );
 
   static const String msg91AuthToken = String.fromEnvironment(
-    'MSG91_AUTH_TOKEN', 
-    defaultValue: '490772TjvI2yii6978df07P1'
+    'MSG91_AUTH_TOKEN',
+    defaultValue: '', // Provide this via --dart-define=MSG91_AUTH_TOKEN=xxx
   );
 
   // You can add other global configuration here

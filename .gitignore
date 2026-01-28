@@ -43,6 +43,7 @@ seed/node_modules/
 
 # Backend node_modules
 backend/node_modules/
+backend/.env
 
 # Scripts
 scripts/service-account-key.json
@@ -55,3 +56,4 @@ android/app/google-services.json
 # Build outputs
 builds/
 .gradle-cache-tmp/
+.env

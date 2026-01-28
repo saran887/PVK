@@ -3,12 +3,29 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/providers/auth_provider.dart';
+import '../../../../shared/widgets/animations.dart';
 
-class DeliveryHomeScreen extends ConsumerWidget {
+class DeliveryHomeScreen extends ConsumerStatefulWidget {
   const DeliveryHomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<DeliveryHomeScreen> createState() => _DeliveryHomeScreenState();
+}
+
+class _DeliveryHomeScreenState extends ConsumerState<DeliveryHomeScreen> {
+  bool _showContent = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Trigger entrance animation after frame is built
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) setState(() => _showContent = true);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final user = ref.watch(currentUserProvider).asData?.value;
 
     return Scaffold(
@@ -137,69 +154,81 @@ class DeliveryHomeScreen extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Stats Grid
-                      GridView.count(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        crossAxisCount: 2,
-                        mainAxisSpacing: 12,
-                        crossAxisSpacing: 12,
-                        childAspectRatio: 1.05,
-                        children: [
-                          _DeliveryStatCard(
-                            icon: Icons.inventory_2_rounded,
-                            title: 'Ready to Deliver',
-                            value: readyCount.toString(),
-                          ),
-                          _DeliveryStatCard(
-                            icon: Icons.local_shipping_rounded,
-                            title: 'In Transit',
-                            value: inTransitCount.toString(),
-                          ),
-                          _DeliveryStatCard(
-                            icon: Icons.check_circle_rounded,
-                            title: 'Delivered Today',
-                            value: deliveredToday.toString(),
-                          ),
-                          _DeliveryStatCard(
-                            icon: Icons.pending_actions_rounded,
-                            title: 'Pending Delivery',
-                            value: pendingDelivery.toString(),
-                          ),
-                        ],
+                      // Stats Grid with fade+slide animation
+                      SlideFadeIn(
+                        show: _showContent,
+                        delay: const Duration(milliseconds: 100),
+                        child: GridView.count(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          crossAxisCount: 2,
+                          mainAxisSpacing: 12,
+                          crossAxisSpacing: 12,
+                          childAspectRatio: 1.05,
+                          children: [
+                            _DeliveryStatCard(
+                              icon: Icons.inventory_2_rounded,
+                              title: 'Ready to Deliver',
+                              value: readyCount.toString(),
+                            ),
+                            _DeliveryStatCard(
+                              icon: Icons.local_shipping_rounded,
+                              title: 'In Transit',
+                              value: inTransitCount.toString(),
+                            ),
+                            _DeliveryStatCard(
+                              icon: Icons.check_circle_rounded,
+                              title: 'Delivered Today',
+                              value: deliveredToday.toString(),
+                            ),
+                            _DeliveryStatCard(
+                              icon: Icons.pending_actions_rounded,
+                              title: 'Pending Delivery',
+                              value: pendingDelivery.toString(),
+                            ),
+                          ],
+                        ),
                       ),
 
                       const SizedBox(height: 24),
-                      const Text(
-                        'Quick Actions',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                      SlideFadeIn(
+                        show: _showContent,
+                        delay: const Duration(milliseconds: 200),
+                        child: const Text(
+                          'Quick Actions',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 12),
-                      GridView.count(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        crossAxisCount: 2,
-                        mainAxisSpacing: 12,
-                        crossAxisSpacing: 12,
-                        childAspectRatio: 1.0,
-                        children: [
-                          _ActionCard(
-                            icon: Icons.inventory_rounded,
-                            title: 'Ready to Deliver',
-                            subtitle: 'View assigned orders',
-                            onTap: () => context.push('/delivery/ready-to-deliver'),
-                          ),
-                          _ActionCard(
-                            icon: Icons.history_rounded,
-                            title: 'Delivery History',
-                            subtitle: 'View completed trips',
-                            onTap: () => context.push('/delivery/history'),
-                          ),
-                        ],
+                      SlideFadeIn(
+                        show: _showContent,
+                        delay: const Duration(milliseconds: 250),
+                        child: GridView.count(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          crossAxisCount: 2,
+                          mainAxisSpacing: 12,
+                          crossAxisSpacing: 12,
+                          childAspectRatio: 1.0,
+                          children: [
+                            _ActionCard(
+                              icon: Icons.inventory_rounded,
+                              title: 'Ready to Deliver',
+                              subtitle: 'View assigned orders',
+                              onTap: () => context.push('/delivery/ready-to-deliver'),
+                            ),
+                            _ActionCard(
+                              icon: Icons.history_rounded,
+                              title: 'Delivery History',
+                              subtitle: 'View completed trips',
+                              onTap: () => context.push('/delivery/history'),
+                            ),
+                          ],
+                        ),
                       ),
 
                       const SizedBox(height: 24),

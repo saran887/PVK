@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:pkv2/features/auth/providers/auth_provider.dart';
 import 'package:pkv2/shared/widgets/common_widgets.dart';
+import 'package:pkv2/shared/widgets/animations.dart';
 
 /// Provider for owner dashboard statistics
 final ownerStatsProvider = StreamProvider<OwnerStats>((ref) {
@@ -88,11 +89,27 @@ class OwnerStats {
   });
 }
 
-class OwnerDashboardScreen extends ConsumerWidget {
+class OwnerDashboardScreen extends ConsumerStatefulWidget {
   const OwnerDashboardScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<OwnerDashboardScreen> createState() => _OwnerDashboardScreenState();
+}
+
+class _OwnerDashboardScreenState extends ConsumerState<OwnerDashboardScreen> {
+  bool _showContent = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Trigger entrance animation after frame is built
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) setState(() => _showContent = true);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final user = ref.watch(currentUserProvider).asData?.value;
     final statsAsync = ref.watch(ownerStatsProvider);
 
@@ -196,36 +213,64 @@ class OwnerDashboardScreen extends ConsumerWidget {
               ],
             ),
 
-            // Dashboard Content
+            // Dashboard Content with staggered animations
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.all(20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Primary Stats - Revenue
-                    _buildOverviewStats(context, statsAsync),
+                    // Primary Stats - Revenue (fade + slide in)
+                    SlideFadeIn(
+                      show: _showContent,
+                      delay: const Duration(milliseconds: 100),
+                      child: _buildOverviewStats(context, statsAsync),
+                    ),
                     const SizedBox(height: 32),
 
                     // Section 1: Business Insights
-                    const SectionHeader(
-                      title: 'Business Reports',
-                      actionLabel: 'View Full Analytics',
+                    SlideFadeIn(
+                      show: _showContent,
+                      delay: const Duration(milliseconds: 200),
+                      child: const SectionHeader(
+                        title: 'Business Reports',
+                        actionLabel: 'View Full Analytics',
+                      ),
                     ),
                     const SizedBox(height: 12),
-                    _buildInsightsGrid(context),
+                    SlideFadeIn(
+                      show: _showContent,
+                      delay: const Duration(milliseconds: 250),
+                      child: _buildInsightsGrid(context),
+                    ),
                     const SizedBox(height: 32),
 
                     // Section 2: Management & Operations
-                    const SectionHeader(title: 'Administrative Controls'),
+                    SlideFadeIn(
+                      show: _showContent,
+                      delay: const Duration(milliseconds: 300),
+                      child: const SectionHeader(title: 'Administrative Controls'),
+                    ),
                     const SizedBox(height: 12),
-                    _buildOperationsGrid(context),
+                    SlideFadeIn(
+                      show: _showContent,
+                      delay: const Duration(milliseconds: 350),
+                      child: _buildOperationsGrid(context),
+                    ),
                     const SizedBox(height: 32),
 
                     // Section 3: User & Shop Entry
-                    const SectionHeader(title: 'Quick Registration'),
+                    SlideFadeIn(
+                      show: _showContent,
+                      delay: const Duration(milliseconds: 400),
+                      child: const SectionHeader(title: 'Quick Registration'),
+                    ),
                     const SizedBox(height: 12),
-                    _buildQuickActionsGrid(context),
+                    SlideFadeIn(
+                      show: _showContent,
+                      delay: const Duration(milliseconds: 450),
+                      child: _buildQuickActionsGrid(context),
+                    ),
                     const SizedBox(height: 80),
                   ],
                 ),

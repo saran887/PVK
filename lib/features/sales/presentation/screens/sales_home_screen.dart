@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../auth/providers/auth_provider.dart';
 import '../../../../shared/widgets/common_widgets.dart';
+import '../../../../shared/widgets/animations.dart';
 
 /// Provider for sales statistics
 final salesStatsProvider = StreamProvider.family<SalesStats, String>((ref, locationId) {
@@ -62,8 +63,24 @@ class SalesStats {
   });
 }
 
-class SalesHomeScreen extends ConsumerWidget {
+class SalesHomeScreen extends ConsumerStatefulWidget {
   const SalesHomeScreen({super.key});
+
+  @override
+  ConsumerState<SalesHomeScreen> createState() => _SalesHomeScreenState();
+}
+
+class _SalesHomeScreenState extends ConsumerState<SalesHomeScreen> {
+  bool _showContent = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Trigger entrance animation after frame is built
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) setState(() => _showContent = true);
+    });
+  }
 
   Future<void> _confirmLogout(BuildContext context, WidgetRef ref) async {
     final confirm = await showDialog<bool>(
@@ -90,7 +107,7 @@ class SalesHomeScreen extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final user = ref.watch(currentUserProvider).asData?.value;
     final userLocationId = user?.locationId ?? '';
     final statsAsync = ref.watch(salesStatsProvider(userLocationId));
@@ -142,18 +159,35 @@ class SalesHomeScreen extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Welcome Card
-              _buildWelcomeCard(context, user),
+              // Welcome Card with fade in
+              SlideFadeIn(
+                show: _showContent,
+                delay: const Duration(milliseconds: 100),
+                child: _buildWelcomeCard(context, user),
+              ),
               const SizedBox(height: 20),
               
-              // Statistics Row
-              _buildStatsRow(statsAsync),
+              // Statistics Row with staggered animation
+              SlideFadeIn(
+                show: _showContent,
+                delay: const Duration(milliseconds: 200),
+                child: _buildStatsRow(statsAsync),
+              ),
               const SizedBox(height: 24),
               
-              // Quick Actions
-              const SectionHeader(title: 'Quick Actions'),
+              // Quick Actions header
+              SlideFadeIn(
+                show: _showContent,
+                delay: const Duration(milliseconds: 300),
+                child: const SectionHeader(title: 'Quick Actions'),
+              ),
               const SizedBox(height: 14),
-              _buildQuickActions(context),
+              // Quick Actions grid with animation
+              SlideFadeIn(
+                show: _showContent,
+                delay: const Duration(milliseconds: 350),
+                child: _buildQuickActions(context),
+              ),
             ],
           ),
         ),

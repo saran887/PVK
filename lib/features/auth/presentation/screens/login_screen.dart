@@ -9,6 +9,7 @@ import '../../../../core/config/app_config.dart';
 import '../../providers/auth_provider.dart';
 import '../../../../shared/models/user_model.dart';
 import '../../../../shared/enums/app_enums.dart';
+import '../../../../shared/widgets/animations.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -17,7 +18,8 @@ class LoginScreen extends ConsumerStatefulWidget {
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends ConsumerState<LoginScreen> {
+class _LoginScreenState extends ConsumerState<LoginScreen>
+    with SingleTickerProviderStateMixin {
   final List<TextEditingController> _controllers = List.generate(4, (_) => TextEditingController());
   final List<FocusNode> _focusNodes = List.generate(4, (_) => FocusNode());
   
@@ -29,6 +31,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   String? _reqId; // Added for MSG91 OTP
   UserModel? _pendingUser;
 
+  // Animation state variables
+  bool _showContent = false; // Controls entrance animation
+  bool _shakeOtp = false; // Triggers shake on wrong OTP
+  bool _showSuccess = false; // Shows success checkmark
+
   bool _isLoading = false;
   bool _showDemoCodes = false;
 
@@ -37,6 +44,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     super.initState();
     // Initialize MSG91 OTP Widget
     OTPWidget.initializeWidget(AppConfig.msg91WidgetCode, AppConfig.msg91AuthToken);
+    
+    // Trigger entrance animation after frame renders
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) setState(() => _showContent = true);
+    });
   }
 
   @override
@@ -226,14 +238,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       });
       
       if (response != null && response['type'] == 'success') {
+        // Show success animation before proceeding
+        setState(() => _showSuccess = true);
+        await Future.delayed(const Duration(milliseconds: 800));
         // If verification succeeds, proceed to handle final login
         await _signInAfterVerification();
       } else {
+        // Trigger shake animation on wrong OTP
+        setState(() => _shakeOtp = true);
+        await Future.delayed(const Duration(milliseconds: 100));
+        setState(() => _shakeOtp = false);
         _showMessage(response?['message'] ?? 'Invalid OTP', isError: true);
         _clearOtp();
       }
     } catch (e) {
       debugPrint('❌ OTP verification error: $e');
+      // Trigger shake animation on error
+      setState(() => _shakeOtp = true);
+      await Future.delayed(const Duration(milliseconds: 100));
+      setState(() => _shakeOtp = false);
       _showMessage('Invalid OTP. Please try again.', isError: true);
       _clearOtp();
     } finally {
@@ -384,124 +407,199 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // App Logo/Icon
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  child: Image.asset(
-                    'assets/images/logo.png',
-                    height: 150,
-                    
+                // App Logo/Icon with fade + scale entrance animation
+                AnimatedOpacity(
+                  opacity: _showContent ? 1.0 : 0.0,
+                  duration: const Duration(milliseconds: 500),
+                  child: AnimatedScale(
+                    scale: _showContent ? 1.0 : 0.8,
+                    duration: const Duration(milliseconds: 500),
+                    curve: Curves.easeOutCubic,
+                    child: Container(
+                      padding: const EdgeInsets.all(20),
+                      child: Image.asset(
+                        'assets/images/logo.png',
+                        height: 150,
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),
-                Text(
-                  'PVK Agency',
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.red.shade700,
+                // Title with slide + fade animation
+                AnimatedOpacity(
+                  opacity: _showContent ? 1.0 : 0.0,
+                  duration: const Duration(milliseconds: 500),
+                  child: AnimatedSlide(
+                    offset: _showContent ? Offset.zero : const Offset(0, 0.2),
+                    duration: const Duration(milliseconds: 500),
+                    curve: Curves.easeOutCubic,
+                    child: Text(
+                      'PVK Agency',
+                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.red.shade700,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
                   ),
-                  textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 8),
-                Text(
-                  'Enter your 4-digit access code',
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: Colors.grey[600],
+                // Subtitle with delayed slide animation
+                AnimatedOpacity(
+                  opacity: _showContent ? 1.0 : 0.0,
+                  duration: const Duration(milliseconds: 600),
+                  child: AnimatedSlide(
+                    offset: _showContent ? Offset.zero : const Offset(0, 0.2),
+                    duration: const Duration(milliseconds: 600),
+                    curve: Curves.easeOutCubic,
+                    child: Text(
+                      'Enter your 4-digit access code',
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        color: Colors.grey[600],
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
                   ),
-                  textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 48),
                 
-                // Code Input Boxes
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    for (int i = 0; i < 4; i++) ...[
-                      _buildCodeBox(i),
-                      if (i < 3) const SizedBox(width: 12),
+                // Code Input Boxes with fade animation
+                AnimatedOpacity(
+                  opacity: _showContent ? 1.0 : 0.0,
+                  duration: const Duration(milliseconds: 700),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      for (int i = 0; i < 4; i++) ...[
+                        _buildCodeBox(i),
+                        if (i < 3) const SizedBox(width: 12),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
 
+                // OTP Section with slide-in animation
                 if (_isOtpSent) ...[
                   const SizedBox(height: 32),
-                  const Text(
-                    'Enter 4-digit OTP',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
+                  // Success checkmark animation (shows after verification)
+                  if (_showSuccess)
+                    AnimatedCheckmark(
+                      size: 80,
                       color: Colors.green,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  if (_pendingUser != null)
-                    Text(
-                      'Sent to: ******${_pendingUser!.phone.substring(_pendingUser!.phone.length - 3)}',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[600],
-                        fontWeight: FontWeight.w500,
+                      show: _showSuccess,
+                    )
+                  else ...[
+                    // OTP Title slides in
+                    AnimatedSlide(
+                      offset: _isOtpSent ? Offset.zero : const Offset(0, 0.5),
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeOutCubic,
+                      child: AnimatedOpacity(
+                        opacity: _isOtpSent ? 1.0 : 0.0,
+                        duration: const Duration(milliseconds: 300),
+                        child: const Text(
+                          'Enter 4-digit OTP',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.green,
+                          ),
+                        ),
                       ),
                     ),
-                  const SizedBox(height: 16),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        for (int i = 0; i < 4; i++) ...[
-                          _buildOtpBox(i),
-                          if (i < 3) const SizedBox(width: 8),
-                        ],
-                      ],
+                    const SizedBox(height: 4),
+                    if (_pendingUser != null)
+                      AnimatedOpacity(
+                        opacity: _isOtpSent ? 1.0 : 0.0,
+                        duration: const Duration(milliseconds: 400),
+                        child: Text(
+                          'Sent to: ******${_pendingUser!.phone.substring(_pendingUser!.phone.length - 3)}',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    const SizedBox(height: 16),
+                    // OTP boxes with shake animation for wrong OTP
+                    SimpleShake(
+                      trigger: _shakeOtp,
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            for (int i = 0; i < 4; i++) ...[
+                              _buildOtpBox(i),
+                              if (i < 3) const SizedBox(width: 8),
+                            ],
+                          ],
+                        ),
+                      ),
                     ),
-                  ),
+                  ],
                 ],
 
                 const SizedBox(height: 32),
                 
-                // Sign In Button or Loading
+                // Sign In Button with scale press animation
                 if (!_isOtpSent && _pendingUser == null)
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 200),
-                  child: _isLoading
-                      ? Container(
-                          padding: const EdgeInsets.all(16),
-                          child: const CircularProgressIndicator(),
-                        )
-                      : SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
+                AnimatedOpacity(
+                  opacity: _showContent ? 1.0 : 0.0,
+                  duration: const Duration(milliseconds: 800),
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 200),
+                    child: _isLoading
+                        ? Container(
+                            padding: const EdgeInsets.all(16),
+                            child: const CircularProgressIndicator(),
+                          )
+                        : AnimatedPressButton(
                             onPressed: _enteredCode.length == 4 ? _handleLogin : null,
-                            style: ElevatedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
+                            child: SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                onPressed: _enteredCode.length == 4 ? _handleLogin : null,
+                                style: ElevatedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                ),
+                                child: const Text(
+                                  'Sign In',
+                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                                ),
                               ),
                             ),
-                            child: const Text(
-                              'Sign In',
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                            ),
                           ),
-                        ),
+                  ),
                 ),
 
-                if (_isOtpSent)
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
+                // Verify OTP Button with scale press animation
+                if (_isOtpSent && !_showSuccess)
+                AnimatedOpacity(
+                  opacity: _isOtpSent ? 1.0 : 0.0,
+                  duration: const Duration(milliseconds: 400),
+                  child: AnimatedPressButton(
                     onPressed: _isLoading || _enteredOtp.length < 4 ? null : _verifyOtp,
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      backgroundColor: Colors.green,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: _isLoading || _enteredOtp.length < 4 ? null : _verifyOtp,
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          backgroundColor: Colors.green,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        child: _isLoading 
+                          ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                          : const Text('Verify & Login', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                       ),
                     ),
-                    child: _isLoading 
-                      ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                      : const Text('Verify & Login', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                   ),
                 ),
                 

@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:rxdart/rxdart.dart';
 import '../../../auth/providers/auth_provider.dart';
 import '../../../../shared/widgets/common_widgets.dart';
+import '../../../../shared/widgets/animations.dart';
 
 /// Provider for combined dashboard stats using rxdart for efficient stream combining
 final dashboardStatsProvider = StreamProvider<DashboardStats>((ref) {
@@ -46,8 +47,24 @@ class DashboardStats {
   });
 }
 
-class AdminDashboardScreen extends ConsumerWidget {
+class AdminDashboardScreen extends ConsumerStatefulWidget {
   const AdminDashboardScreen({super.key});
+
+  @override
+  ConsumerState<AdminDashboardScreen> createState() => _AdminDashboardScreenState();
+}
+
+class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
+  bool _showContent = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Trigger entrance animation after frame is built
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) setState(() => _showContent = true);
+    });
+  }
 
   Future<bool> _showExitDialog(BuildContext context) async {
     return await showDialog<bool>(
@@ -70,7 +87,7 @@ class AdminDashboardScreen extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final user = ref.watch(currentUserProvider).asData?.value;
     final statsAsync = ref.watch(dashboardStatsProvider);
 
@@ -95,14 +112,22 @@ class AdminDashboardScreen extends ConsumerWidget {
               slivers: [
                 // --- HEADER ---
                 SliverToBoxAdapter(
-                  child: _buildHeader(context, ref, user?.name),
+                  child: SlideFadeIn(
+                    show: _showContent,
+                    delay: const Duration(milliseconds: 100),
+                    child: _buildHeader(context, ref, user?.name),
+                  ),
                 ),
 
-                // --- STATS GRID ---
+                // --- STATS GRID with staggered animation ---
                 SliverPadding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   sliver: SliverToBoxAdapter(
-                    child: _buildStatsGrid(statsAsync),
+                    child: SlideFadeIn(
+                      show: _showContent,
+                      delay: const Duration(milliseconds: 200),
+                      child: _buildStatsGrid(statsAsync),
+                    ),
                   ),
                 ),
 
@@ -112,7 +137,11 @@ class AdminDashboardScreen extends ConsumerWidget {
                 SliverPadding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   sliver: SliverToBoxAdapter(
-                    child: _buildManagementSection(context),
+                    child: SlideFadeIn(
+                      show: _showContent,
+                      delay: const Duration(milliseconds: 300),
+                      child: _buildManagementSection(context),
+                    ),
                   ),
                 ),
 
@@ -120,7 +149,11 @@ class AdminDashboardScreen extends ConsumerWidget {
                 SliverPadding(
                   padding: const EdgeInsets.all(20),
                   sliver: SliverToBoxAdapter(
-                    child: _buildQuickRegisterSection(context),
+                    child: SlideFadeIn(
+                      show: _showContent,
+                      delay: const Duration(milliseconds: 400),
+                      child: _buildQuickRegisterSection(context),
+                    ),
                   ),
                 ),
                 

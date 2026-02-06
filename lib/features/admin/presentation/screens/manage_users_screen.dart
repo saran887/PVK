@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:go_router/go_router.dart';
 
 // Helper functions for role colors and icons
 Color getRoleColor(String role) {
@@ -342,9 +343,7 @@ class _ManageUsersScreenState extends ConsumerState<ManageUsersScreen> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Add User - Coming soon!')),
-          );
+          context.push('/admin/add-person');
         },
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,

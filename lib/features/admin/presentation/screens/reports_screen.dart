@@ -1144,7 +1144,9 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
               double totalSales = 0;
               int deliveredOrders = 0;
               int billedOrders = 0;
+              int pendingOrders = 0;
               final Set<String> uniqueShops = {};
+              final bool isDelivery = role.toLowerCase().contains('delivery');
 
               for (final order in orders) {
                 final orderData = order.data() as Map<String, dynamic>;
@@ -1154,8 +1156,12 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
                   totalSales += (orderData['totalAmount'] as num?)?.toDouble() ?? 0;
                 }
                 final status = orderData['status'] as String? ?? '';
-                if (status == 'delivered') deliveredOrders++;
-                if (status == 'billed') billedOrders++;
+                if (status == 'delivered') {
+                  deliveredOrders++;
+                } else if (status == 'billed' || status == 'out_for_delivery' || status == 'ready_for_delivery') {
+                  pendingOrders++;
+                  if (status == 'billed') billedOrders++;
+                }
                 
                 final shopId = orderData['shopId'] as String?;
                 if (shopId != null) uniqueShops.add(shopId);
@@ -1176,15 +1182,28 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
                         children: [
                           Row(
                             children: [
-                              Expanded(child: _buildStatTile('Total Sales', '₹${totalSales.toStringAsFixed(2)}', Colors.green)),
-                              Expanded(child: _buildStatTile('Total Orders', '${orders.length}', Colors.blue)),
+                              if (isSales) ...[
+                                Expanded(child: _buildStatTile('Total Sales', '₹${totalSales.toStringAsFixed(2)}', Colors.green)),
+                                Expanded(child: _buildStatTile('Total Orders', '${orders.length}', Colors.blue)),
+                              ] else ...[
+                                Expanded(child: _buildStatTile('Total Orders', '${orders.length}', Colors.blue)),
+                                Expanded(child: _buildStatTile('Shops Covered', '${uniqueShops.length}', Colors.purple)),
+                              ],
                             ],
                           ),
                           const SizedBox(height: 8),
                           Row(
                             children: [
-                              Expanded(child: _buildStatTile('Shops Covered', '${uniqueShops.length}', Colors.purple)),
-                              Expanded(child: _buildStatTile('Delivered', '$deliveredOrders', Colors.orange)),
+                              if (isSales) ...[
+                                Expanded(child: _buildStatTile('Shops Covered', '${uniqueShops.length}', Colors.purple)),
+                                Expanded(child: _buildStatTile('Delivered', '$deliveredOrders', Colors.orange)),
+                              ] else if (isDelivery) ...[
+                                Expanded(child: _buildStatTile('Completed', '$deliveredOrders', Colors.green)),
+                                Expanded(child: _buildStatTile('Pending', '$pendingOrders', Colors.orange)),
+                              ] else ...[
+                                Expanded(child: _buildStatTile('Completed', '$deliveredOrders', Colors.green)),
+                                Expanded(child: _buildStatTile('In Progress', '$billedOrders', Colors.orange)),
+                              ],
                             ],
                           ),
                         ],

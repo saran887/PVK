@@ -22,6 +22,7 @@ class _AddPersonScreenState extends ConsumerState<AddPersonScreen> {
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
   final _codeController = TextEditingController();
+  final _upiController = TextEditingController();
   UserRole _selectedRole = UserRole.sales;
   bool _isLoading = false;
   String? _selectedLocationId;
@@ -45,6 +46,7 @@ class _AddPersonScreenState extends ConsumerState<AddPersonScreen> {
     _nameController.dispose();
     _phoneController.dispose();
     _codeController.dispose();
+    _upiController.dispose();
     super.dispose();
   }
 
@@ -88,6 +90,7 @@ class _AddPersonScreenState extends ConsumerState<AddPersonScreen> {
           _nameController.text = data['name'] ?? '';
           _phoneController.text = data['phone'] ?? '';
           _codeController.text = data['code']?.toString() ?? '';
+          _upiController.text = data['upiId'] ?? '';
           _selectedRole = UserRole.fromString(data['role'] ?? 'SALES');
           _selectedLocationId = data['locationId'] as String?;
           _selectedLocationName = data['locationName'] as String?;
@@ -114,6 +117,7 @@ class _AddPersonScreenState extends ConsumerState<AddPersonScreen> {
           'name': _nameController.text.trim(),
           'phone': _phoneController.text.trim(),
           'code': _codeController.text,
+          'upiId': _upiController.text.trim(),
           'role': _selectedRole.name.toUpperCase(),
           'updatedAt': FieldValue.serverTimestamp(),
         };
@@ -167,6 +171,7 @@ class _AddPersonScreenState extends ConsumerState<AddPersonScreen> {
           'email': randomEmail,
           'phone': _phoneController.text.trim(),
           'code': _codeController.text,
+          'upiId': _upiController.text.trim(),
           'role': _selectedRole.name.toUpperCase(),
           'password': randomPassword,
           'isActive': true,
@@ -269,6 +274,16 @@ class _AddPersonScreenState extends ConsumerState<AddPersonScreen> {
                 }
                 return null;
               },
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _upiController,
+              decoration: const InputDecoration(
+                labelText: 'UPI ID (Optional)',
+                hintText: 'e.g. number@okicici',
+                prefixIcon: Icon(Icons.account_balance_wallet),
+              ),
+              keyboardType: TextInputType.emailAddress,
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<UserRole>(

@@ -1,9 +1,10 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pkv2/shared/widgets/animations.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:rxdart/rxdart.dart';
 
 class OwnerExpensesScreen extends ConsumerStatefulWidget {
   const OwnerExpensesScreen({super.key});
@@ -25,13 +26,36 @@ class _OwnerExpensesScreenState extends ConsumerState<OwnerExpensesScreen> {
     });
   }
 
+  DateTime _getStartDate() {
+    return DateTime(_selectedMonth.year, _selectedMonth.month, 1);
+  }
+
+  DateTime _getEndDate() {
+    return DateTime(_selectedMonth.year, _selectedMonth.month + 1, 1);
+  }
+
+  void _onPeriodChanged(String value) {
+    setState(() {
+      _selectedPeriod = value;
+      if (value == 'last_month') {
+        _selectedMonth = DateTime(DateTime.now().year, DateTime.now().month - 1);
+      } else if (value == 'current_month') {
+        _selectedMonth = DateTime.now();
+      }
+    });
+  }
+
+  void _onCustomMonthSelected(DateTime date) {
+    setState(() => _selectedMonth = date);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       body: CustomScrollView(
         slivers: [
-          _buildSliverAppBar(),
+          const _ExpensesSliverAppBar(),
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.all(20),
@@ -41,25 +65,39 @@ class _OwnerExpensesScreenState extends ConsumerState<OwnerExpensesScreen> {
                   SlideFadeIn(
                     show: _showContent,
                     delay: const Duration(milliseconds: 100),
-                    child: _buildPeriodSelector(),
+                    child: _PeriodSelector(
+                      selectedPeriod: _selectedPeriod,
+                      selectedMonth: _selectedMonth,
+                      onPeriodChanged: _onPeriodChanged,
+                      onCustomMonthSelected: _onCustomMonthSelected,
+                    ),
                   ),
                   const SizedBox(height: 24),
                   SlideFadeIn(
                     show: _showContent,
                     delay: const Duration(milliseconds: 200),
-                    child: _buildExpenseSummary(),
+                    child: _ExpenseSummary(
+                      startDate: _getStartDate(),
+                      endDate: _getEndDate(),
+                    ),
                   ),
                   const SizedBox(height: 32),
                   SlideFadeIn(
                     show: _showContent,
                     delay: const Duration(milliseconds: 300),
-                    child: _buildSalaryBreakdown(),
+                    child: _SalaryBreakdown(
+                      startDate: _getStartDate(),
+                      endDate: _getEndDate(),
+                    ),
                   ),
                   const SizedBox(height: 32),
                   SlideFadeIn(
                     show: _showContent,
                     delay: const Duration(milliseconds: 400),
-                    child: _buildOtherExpenses(),
+                    child: _OtherExpensesList(
+                      startDate: _getStartDate(),
+                      endDate: _getEndDate(),
+                    ),
                   ),
                   const SizedBox(height: 140), // bottom padding
                 ],
@@ -77,7 +115,7 @@ class _OwnerExpensesScreenState extends ConsumerState<OwnerExpensesScreen> {
             delay: const Duration(milliseconds: 500),
             child: FloatingActionButton.extended(
               heroTag: 'advance_btn',
-              onPressed: () => _showGiveAdvanceDialog(),
+              onPressed: () => _ExpenseDialogs.showGiveAdvanceDialog(context),
               icon: const Icon(Icons.currency_rupee_rounded),
               label: const Text('Give Advance'),
               backgroundColor: Colors.teal.shade600,
@@ -90,7 +128,7 @@ class _OwnerExpensesScreenState extends ConsumerState<OwnerExpensesScreen> {
             delay: const Duration(milliseconds: 600),
             child: FloatingActionButton.extended(
               heroTag: 'expense_btn',
-              onPressed: () => _showAddExpenseDialog(),
+              onPressed: () => _ExpenseDialogs.showAddExpenseDialog(context),
               icon: const Icon(Icons.add_rounded),
               label: const Text('Add Expense'),
               backgroundColor: Colors.indigo.shade600,
@@ -101,8 +139,13 @@ class _OwnerExpensesScreenState extends ConsumerState<OwnerExpensesScreen> {
       ),
     );
   }
+}
 
-  Widget _buildSliverAppBar() {
+class _ExpensesSliverAppBar extends StatelessWidget {
+  const _ExpensesSliverAppBar();
+
+  @override
+  Widget build(BuildContext context) {
     return SliverAppBar(
       expandedHeight: 120,
       floating: false,
@@ -176,8 +219,23 @@ class _OwnerExpensesScreenState extends ConsumerState<OwnerExpensesScreen> {
       ),
     );
   }
+}
 
-  Widget _buildPeriodSelector() {
+class _PeriodSelector extends StatelessWidget {
+  final String selectedPeriod;
+  final DateTime selectedMonth;
+  final ValueChanged<String> onPeriodChanged;
+  final ValueChanged<DateTime> onCustomMonthSelected;
+
+  const _PeriodSelector({
+    required this.selectedPeriod,
+    required this.selectedMonth,
+    required this.onPeriodChanged,
+    required this.onCustomMonthSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -185,7 +243,7 @@ class _OwnerExpensesScreenState extends ConsumerState<OwnerExpensesScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -212,7 +270,7 @@ class _OwnerExpensesScreenState extends ConsumerState<OwnerExpensesScreen> {
                   ),
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<String>(
-                      value: _selectedPeriod,
+                      value: selectedPeriod,
                       isExpanded: true,
                       icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.grey),
                       items: const [
@@ -220,32 +278,23 @@ class _OwnerExpensesScreenState extends ConsumerState<OwnerExpensesScreen> {
                         DropdownMenuItem(value: 'last_month', child: Text('Last Month')),
                         DropdownMenuItem(value: 'custom', child: Text('Custom Month')),
                       ],
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedPeriod = value!;
-                          if (value == 'last_month') {
-                            _selectedMonth = DateTime(DateTime.now().year, DateTime.now().month - 1);
-                          } else if (value == 'current_month') {
-                            _selectedMonth = DateTime.now();
-                          }
-                        });
-                      },
+                      onChanged: (value) => onPeriodChanged(value!),
                     ),
                   ),
                 ),
               ),
-              if (_selectedPeriod == 'custom') ...[
+              if (selectedPeriod == 'custom') ...[
                 const SizedBox(width: 12),
                 InkWell(
                   onTap: () async {
                     final picked = await showDatePicker(
                       context: context,
-                      initialDate: _selectedMonth,
+                      initialDate: selectedMonth,
                       firstDate: DateTime(2020),
                       lastDate: DateTime.now(),
                     );
                     if (picked != null) {
-                      setState(() => _selectedMonth = picked);
+                      onCustomMonthSelected(picked);
                     }
                   },
                   borderRadius: BorderRadius.circular(12),
@@ -262,7 +311,7 @@ class _OwnerExpensesScreenState extends ConsumerState<OwnerExpensesScreen> {
                         Icon(Icons.calendar_month_rounded, size: 20, color: Colors.indigo.shade700),
                         const SizedBox(width: 8),
                         Text(
-                          '${_selectedMonth.month}/${_selectedMonth.year}',
+                          '${selectedMonth.month}/${selectedMonth.year}',
                           style: TextStyle(color: Colors.indigo.shade700, fontWeight: FontWeight.w600),
                         ),
                       ],
@@ -276,12 +325,20 @@ class _OwnerExpensesScreenState extends ConsumerState<OwnerExpensesScreen> {
       ),
     );
   }
+}
 
-  Widget _buildExpenseSummary() {
+class _ExpenseSummary extends StatelessWidget {
+  final DateTime startDate;
+  final DateTime endDate;
+
+  const _ExpenseSummary({required this.startDate, required this.endDate});
+
+  @override
+  Widget build(BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance.collection('expenses')
-          .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(_getStartDate()))
-          .where('date', isLessThan: Timestamp.fromDate(_getEndDate()))
+          .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
+          .where('date', isLessThan: Timestamp.fromDate(endDate))
           .snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
@@ -298,7 +355,7 @@ class _OwnerExpensesScreenState extends ConsumerState<OwnerExpensesScreen> {
           final amount = (data['amount'] as num?)?.toDouble() ?? 0;
           final category = data['category'] ?? '';
 
-          if (category == 'Salary') {
+          if (category == 'Salary' || category == 'Advance') {
             paidSalaries += amount;
           } else {
             otherExpenses += amount;
@@ -318,7 +375,7 @@ class _OwnerExpensesScreenState extends ConsumerState<OwnerExpensesScreen> {
             borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
-                color: Colors.blue.withOpacity(0.3),
+                color: Colors.blue.withValues(alpha: 0.3),
                 blurRadius: 15,
                 offset: const Offset(0, 8),
               ),
@@ -371,7 +428,7 @@ class _OwnerExpensesScreenState extends ConsumerState<OwnerExpensesScreen> {
                     children: [
                       _buildSummaryStat(
                         icon: Icons.groups_rounded,
-                        label: 'Salaries Paid',
+                        label: 'Payroll (Salaries + Adv)',
                         value: '₹${paidSalaries.toStringAsFixed(0)}',
                         color: Colors.greenAccent.shade400,
                       ),
@@ -415,24 +472,37 @@ class _OwnerExpensesScreenState extends ConsumerState<OwnerExpensesScreen> {
       ],
     );
   }
+}
 
-  Widget _buildSalaryBreakdown() {
+class _SalaryBreakdown extends StatelessWidget {
+  final DateTime startDate;
+  final DateTime endDate;
+
+  const _SalaryBreakdown({required this.startDate, required this.endDate});
+
+  @override
+  Widget build(BuildContext context) {
+    // We combine the users stream and the expenses stream using RxDart
+    final usersStream = FirebaseFirestore.instance.collection('users').snapshots();
+    final expensesStream = FirebaseFirestore.instance.collection('expenses')
+        .where('category', whereIn: ['Salary', 'Advance'])
+        .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
+        .where('date', isLessThan: Timestamp.fromDate(endDate))
+        .snapshots();
+
     return StreamBuilder<List<QuerySnapshot>>(
-      stream: _combineStreams([
-        FirebaseFirestore.instance.collection('users').snapshots(),
-        FirebaseFirestore.instance.collection('expenses')
-            .where('category', isEqualTo: 'Salary')
-            .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(_getStartDate()))
-            .where('date', isLessThan: Timestamp.fromDate(_getEndDate()))
-            .snapshots()
-      ]),
+      stream: Rx.combineLatest2(
+        usersStream,
+        expensesStream,
+        (QuerySnapshot a, QuerySnapshot b) => [a, b],
+      ),
       builder: (context, snapshot) {
         if (!snapshot.hasData) return const SizedBox.shrink();
 
         final usersDocs = snapshot.data![0].docs;
         final salaryExpenses = snapshot.data![1].docs;
 
-        // Aggregate salaries per employee based on records
+        // Aggregate salaries/advances per employee
         final paidSalaries = <String, double>{};
         for (var expense in salaryExpenses) {
           final data = expense.data() as Map;
@@ -489,7 +559,7 @@ class _OwnerExpensesScreenState extends ConsumerState<OwnerExpensesScreen> {
             ),
             const SizedBox(height: 16),
             if (salaryDisplayList.isEmpty)
-              _buildEmptyState('No salaries paid this period', Icons.person_off_rounded)
+              _EmptyState(message: 'No salaries paid this period', icon: Icons.person_off_rounded)
             else
               Container(
                 decoration: BoxDecoration(
@@ -497,7 +567,7 @@ class _OwnerExpensesScreenState extends ConsumerState<OwnerExpensesScreen> {
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.03),
+                      color: Colors.black.withValues(alpha: 0.03),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -514,13 +584,13 @@ class _OwnerExpensesScreenState extends ConsumerState<OwnerExpensesScreen> {
                     final name = data['name'] as String;
                     final role = data['role'] as String;
                     final amount = data['amount'] as double;
-                    final roleColor = _getRoleColor(role);
+                    final roleColor = _RolesAndCategories.getRoleColor(role);
 
                     return ListTile(
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       leading: CircleAvatar(
-                        backgroundColor: roleColor.withOpacity(0.1),
-                        child: Icon(_getRoleIcon(role), color: roleColor, size: 20),
+                        backgroundColor: roleColor.withValues(alpha: 0.1),
+                        child: Icon(_RolesAndCategories.getRoleIcon(role), color: roleColor, size: 20),
                       ),
                       title: Text(name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
                       subtitle: Padding(
@@ -543,22 +613,30 @@ class _OwnerExpensesScreenState extends ConsumerState<OwnerExpensesScreen> {
       },
     );
   }
+}
 
-  Widget _buildOtherExpenses() {
+class _OtherExpensesList extends StatelessWidget {
+  final DateTime startDate;
+  final DateTime endDate;
+
+  const _OtherExpensesList({required this.startDate, required this.endDate});
+
+  @override
+  Widget build(BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance.collection('expenses')
-          .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(_getStartDate()))
-          .where('date', isLessThan: Timestamp.fromDate(_getEndDate()))
+          .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
+          .where('date', isLessThan: Timestamp.fromDate(endDate))
           .orderBy('date', descending: true)
           .snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) return const SizedBox.shrink();
 
         final rawExpenses = snapshot.data!.docs;
-        // Filter out Salary payments
+        // Filter out Salary and Advance payments
         final expenses = rawExpenses.where((e) {
           final data = e.data() as Map;
-          return data['category'] != 'Salary';
+          return data['category'] != 'Salary' && data['category'] != 'Advance';
         }).toList();
 
         return Column(
@@ -588,7 +666,7 @@ class _OwnerExpensesScreenState extends ConsumerState<OwnerExpensesScreen> {
             ),
             const SizedBox(height: 16),
             if (expenses.isEmpty)
-              _buildEmptyState('No expenses recorded', Icons.receipt_rounded)
+              _EmptyState(message: 'No expenses recorded', icon: Icons.receipt_rounded)
             else
               Container(
                 decoration: BoxDecoration(
@@ -596,7 +674,7 @@ class _OwnerExpensesScreenState extends ConsumerState<OwnerExpensesScreen> {
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.03),
+                      color: Colors.black.withValues(alpha: 0.03),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -615,7 +693,7 @@ class _OwnerExpensesScreenState extends ConsumerState<OwnerExpensesScreen> {
                     final amount = (data['amount'] as num?)?.toDouble() ?? 0;
                     final category = data['category'] ?? 'General';
                     final date = (data['date'] as Timestamp?)?.toDate() ?? DateTime.now();
-                    final catColor = _getCategoryColor(category);
+                    final catColor = _RolesAndCategories.getCategoryColor(category);
 
                     return Dismissible(
                       key: Key(expense.id),
@@ -659,10 +737,10 @@ class _OwnerExpensesScreenState extends ConsumerState<OwnerExpensesScreen> {
                         leading: Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: catColor.withOpacity(0.1),
+                            color: catColor.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: Icon(_getCategoryIcon(category), color: catColor, size: 22),
+                          child: Icon(_RolesAndCategories.getCategoryIcon(category), color: catColor, size: 22),
                         ),
                         title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
                         subtitle: Padding(
@@ -694,8 +772,16 @@ class _OwnerExpensesScreenState extends ConsumerState<OwnerExpensesScreen> {
       },
     );
   }
+}
 
-  Widget _buildEmptyState(String message, IconData icon) {
+class _EmptyState extends StatelessWidget {
+  final String message;
+  final IconData icon;
+
+  const _EmptyState({required this.message, required this.icon});
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(32),
@@ -713,8 +799,10 @@ class _OwnerExpensesScreenState extends ConsumerState<OwnerExpensesScreen> {
       ),
     );
   }
+}
 
-  void _showAddExpenseDialog() {
+class _ExpenseDialogs {
+  static void showAddExpenseDialog(BuildContext context) {
     final titleController = TextEditingController();
     final amountController = TextEditingController();
     final descriptionController = TextEditingController();
@@ -754,7 +842,7 @@ class _OwnerExpensesScreenState extends ConsumerState<OwnerExpensesScreen> {
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
-                  value: selectedCategory,
+                  initialValue: selectedCategory,
                   decoration: InputDecoration(
                     labelText: 'Category',
                     filled: true,
@@ -849,7 +937,7 @@ class _OwnerExpensesScreenState extends ConsumerState<OwnerExpensesScreen> {
                   'createdAt': FieldValue.serverTimestamp(),
                 });
 
-                if (mounted) {
+                if (context.mounted) {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Expense added successfully')),
@@ -870,7 +958,7 @@ class _OwnerExpensesScreenState extends ConsumerState<OwnerExpensesScreen> {
     );
   }
 
-  void _showGiveAdvanceDialog() {
+  static void showGiveAdvanceDialog(BuildContext context) {
     String? selectedEmployeeId;
     String? selectedEmployeeName;
     String? selectedEmployeeUpi;
@@ -895,7 +983,7 @@ class _OwnerExpensesScreenState extends ConsumerState<OwnerExpensesScreen> {
                     if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
                     final users = snapshot.data!.docs.where((d) => (d.data() as Map)['role'] != 'OWNER').toList();
                     return DropdownButtonFormField<String>(
-                      value: selectedEmployeeId,
+                      initialValue: selectedEmployeeId,
                       decoration: InputDecoration(
                         labelText: 'Select Employee',
                         filled: true,
@@ -976,7 +1064,7 @@ class _OwnerExpensesScreenState extends ConsumerState<OwnerExpensesScreen> {
                 SwitchListTile(
                   title: const Text('Pay via Google Pay / UPI', style: TextStyle(fontSize: 14)),
                   value: payViaGPay,
-                  activeColor: Colors.teal.shade600,
+                  activeThumbColor: Colors.teal.shade600,
                   contentPadding: EdgeInsets.zero,
                   onChanged: (val) => setDialogState(() => payViaGPay = val),
                 ),
@@ -1040,7 +1128,7 @@ class _OwnerExpensesScreenState extends ConsumerState<OwnerExpensesScreen> {
                   'createdAt': FieldValue.serverTimestamp(),
                 });
 
-                if (mounted) {
+                if (context.mounted) {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Advance recorded successfully')),
@@ -1060,16 +1148,10 @@ class _OwnerExpensesScreenState extends ConsumerState<OwnerExpensesScreen> {
       ),
     );
   }
+}
 
-  DateTime _getStartDate() {
-    return DateTime(_selectedMonth.year, _selectedMonth.month, 1);
-  }
-
-  DateTime _getEndDate() {
-    return DateTime(_selectedMonth.year, _selectedMonth.month + 1, 1);
-  }
-
-  Color _getRoleColor(String role) {
+class _RolesAndCategories {
+  static Color getRoleColor(String role) {
     switch (role.toLowerCase()) {
       case 'admin': return Colors.red.shade600;
       case 'sales': return Colors.blue.shade600;
@@ -1079,7 +1161,7 @@ class _OwnerExpensesScreenState extends ConsumerState<OwnerExpensesScreen> {
     }
   }
 
-  IconData _getRoleIcon(String role) {
+  static IconData getRoleIcon(String role) {
     switch (role.toLowerCase()) {
       case 'admin': return Icons.admin_panel_settings_rounded;
       case 'sales': return Icons.shopping_bag_rounded;
@@ -1089,7 +1171,7 @@ class _OwnerExpensesScreenState extends ConsumerState<OwnerExpensesScreen> {
     }
   }
 
-  Color _getCategoryColor(String category) {
+  static Color getCategoryColor(String category) {
     switch (category.toLowerCase()) {
       case 'rent': return Colors.purple.shade600;
       case 'utilities': return Colors.blue.shade600;
@@ -1101,7 +1183,7 @@ class _OwnerExpensesScreenState extends ConsumerState<OwnerExpensesScreen> {
     }
   }
 
-  IconData _getCategoryIcon(String category) {
+  static IconData getCategoryIcon(String category) {
     switch (category.toLowerCase()) {
       case 'rent': return Icons.holiday_village_rounded;
       case 'utilities': return Icons.electric_bolt_rounded;
@@ -1111,10 +1193,5 @@ class _OwnerExpensesScreenState extends ConsumerState<OwnerExpensesScreen> {
       case 'marketing': return Icons.campaign_rounded;
       default: return Icons.receipt_rounded;
     }
-  }
-
-  Stream<List<QuerySnapshot>> _combineStreams(List<Stream<QuerySnapshot>> streams) {
-    return Stream.periodic(const Duration(milliseconds: 500))
-        .asyncMap((_) => Future.wait(streams.map((s) => s.first)));
   }
 }

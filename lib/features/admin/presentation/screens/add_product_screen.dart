@@ -301,7 +301,7 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
                 ),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
-                  value: _selectedCategory,
+                  initialValue: _selectedCategory,
                   decoration: InputDecoration(
                     labelText: 'Category',
                     prefixIcon: const Icon(Icons.category),
@@ -378,7 +378,7 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: DropdownButtonFormField<String>(
-                        value: _selectedUnit,
+                        initialValue: _selectedUnit,
                         decoration: const InputDecoration(
                           labelText: 'Unit',
                           border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
@@ -409,7 +409,7 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: DropdownButtonFormField<String>(
-                        value: _selectedQuantityUnit,
+                        initialValue: _selectedQuantityUnit,
                         decoration: const InputDecoration(
                           labelText: 'Unit',
                           border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
@@ -499,7 +499,7 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
         decoration: BoxDecoration(
           color: Colors.white,
           boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -5)),
+            BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, -5)),
           ],
         ),
         child: SizedBox(

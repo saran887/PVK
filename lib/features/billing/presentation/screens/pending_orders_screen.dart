@@ -60,14 +60,14 @@ class _PendingOrdersScreenState extends ConsumerState<PendingOrdersScreen> {
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
+                          color: Colors.black.withValues(alpha: 0.1),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
                       ],
                     ),
                     child: DropdownButtonFormField<String>(
-                      value: selectedLocationId,
+                      initialValue: selectedLocationId,
                       decoration: InputDecoration(
                         labelText: 'Select Location',
                         prefixIcon: Icon(Icons.location_on, color: Colors.orange.shade700),
@@ -164,7 +164,6 @@ class _PendingOrdersScreenState extends ConsumerState<PendingOrdersScreen> {
                     final totalAmount = (order['totalAmount'] ?? 0).toDouble();
                     final totalItems = order['totalItems'] ?? 0;
                     final createdAt = (order['createdAt'] as Timestamp?)?.toDate();
-                    final items = order['items'] as List<dynamic>? ?? [];
 
                     return Card(
                       elevation: 3,
@@ -415,7 +414,7 @@ class _PendingOrdersScreenState extends ConsumerState<PendingOrdersScreen> {
 
                       return ListTile(
                         title: Text(item['productName'] ?? 'Unknown'),
-                        subtitle: Text('${quantity.toStringAsFixed(0)} × ₹${price.toStringAsFixed(2)}'),
+                        subtitle: Text('${quantity.toStringAsFixed(0)} Ã— ₹${price.toStringAsFixed(2)}'),
                         trailing: Text(
                           '₹${subtotal.toStringAsFixed(2)}',
                           style: const TextStyle(

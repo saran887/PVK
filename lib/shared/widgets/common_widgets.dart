@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 /// A reusable stat card widget with icon, label, and value
 class StatCard extends StatelessWidget {
@@ -481,16 +481,16 @@ class StatusBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: statusColor.withOpacity(0.1),
+        color: statusColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: statusColor.withOpacity(0.3)),
+        border: Border.all(color: statusColor.withValues(alpha: 0.3)),
       ),
       child: Text(
         status.replaceAll('_', ' ').toUpperCase(),
         style: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.bold,
-          color: statusColor.withOpacity(0.9),
+          color: statusColor.withValues(alpha: 0.9),
         ),
       ),
     );

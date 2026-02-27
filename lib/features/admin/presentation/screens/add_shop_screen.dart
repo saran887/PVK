@@ -174,7 +174,7 @@ class _AddShopScreenState extends ConsumerState<AddShopScreen> {
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
-              value: _selectedLocationId,
+              initialValue: _selectedLocationId,
               decoration: const InputDecoration(
                 labelText: 'Location',
                 prefixIcon: Icon(Icons.location_city),

@@ -344,13 +344,13 @@ class ReadyToDeliverScreen extends ConsumerWidget {
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: isSelected ? color : Colors.grey.shade300),
-                        color: isSelected ? color.withOpacity(0.08) : Colors.white,
+                        color: isSelected ? color.withValues(alpha: 0.08) : Colors.white,
                       ),
                       child: ListTile(
                         leading: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: color.withOpacity(0.1),
+                            color: color.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Icon(m['icon'] as IconData, color: color),
@@ -358,8 +358,10 @@ class ReadyToDeliverScreen extends ConsumerWidget {
                         title: Text(m['title'] as String),
                         trailing: Radio<String>(
                           value: m['key'] as String,
+                          // ignore: deprecated_member_use
                           groupValue: selected,
                           activeColor: color,
+                          // ignore: deprecated_member_use
                           onChanged: (val) => setState(() => selected = val!),
                         ),
                         onTap: () => setState(() => selected = m['key'] as String),
@@ -393,7 +395,8 @@ class ReadyToDeliverScreen extends ConsumerWidget {
                             child: QrImageView(
                               data: 'upi://pay?pa=saransarvesh213@oksbi&pn=Saran Sarvesh A G&am=${amount.toStringAsFixed(2)}&cu=INR',
                               size: 180,
-                              foregroundColor: Colors.black,
+                              eyeStyle: const QrEyeStyle(eyeShape: QrEyeShape.square, color: Colors.black),
+                              dataModuleStyle: const QrDataModuleStyle(dataModuleShape: QrDataModuleShape.square, color: Colors.black),
                               backgroundColor: Colors.white,
                             ),
                           ),

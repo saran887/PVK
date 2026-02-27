@@ -1,0 +1,149 @@
+﻿Resolving dependencies...
+Downloading packages...
+  _flutterfire_internals 1.3.59 (1.3.66 available)
+  archive 3.6.1 (4.0.9 available)
+  characters 1.4.0 (1.4.1 available)
+  cloud_firestore 5.6.12 (6.1.2 available)
+  cloud_firestore_platform_interface 6.6.12 (7.0.6 available)
+  cloud_firestore_web 4.4.12 (5.1.2 available)
+  cross_file 0.3.5+1 (0.3.5+2 available)
+  equatable 2.0.7 (2.0.8 available)
+  ffi 2.1.4 (2.2.0 available)
+  firebase_auth 5.7.0 (6.1.4 available)
+  firebase_auth_platform_interface 7.7.3 (8.1.6 available)
+  firebase_auth_web 5.15.3 (6.1.2 available)
+  firebase_core 3.15.2 (4.4.0 available)
+  firebase_core_web 2.24.1 (3.4.0 available)
+  firebase_storage 12.4.10 (13.0.6 available)
+  firebase_storage_platform_interface 5.2.10 (5.2.17 available)
+  firebase_storage_web 3.10.17 (3.11.2 available)
+  flutter_lints 5.0.0 (6.0.0 available)
+  flutter_riverpod 2.6.1 (3.2.1 available)
+  go_router 14.8.1 (17.1.0 available)
+  image 4.3.0 (4.8.0 available)
+  image_picker_android 0.8.13+10 (0.8.13+14 available)
+  image_picker_ios 0.8.13+3 (0.8.13+6 available)
+  intl 0.19.0 (0.20.2 available)
+  lints 5.1.1 (6.1.0 available)
+  matcher 0.12.17 (0.12.19 available)
+  material_color_utilities 0.11.1 (0.13.0 available)
+  meta 1.17.0 (1.18.1 available)
+  path_provider_foundation 2.5.1 (2.6.0 available)
+  permission_handler 11.4.0 (12.0.1 available)
+  permission_handler_android 12.1.0 (13.0.1 available)
+  petitparser 7.0.1 (7.0.2 available)
+  riverpod 2.6.1 (3.2.1 available)
+  share_plus 10.1.4 (12.0.1 available)
+  share_plus_platform_interface 5.0.2 (6.1.0 available)
+  source_span 1.10.1 (1.10.2 available)
+  test_api 0.7.7 (0.7.10 available)
+  url_launcher_ios 6.3.6 (6.4.1 available)
+  url_launcher_web 2.4.1 (2.4.2 available)
+  uuid 4.5.2 (4.5.3 available)
+  win32 5.15.0 (6.0.0 available)
+Got dependencies!
+41 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+Analyzing pkv2...                                               
+
+warning - The value of the local variable 'completedOrders' isn't used - lib\features\admin\presentation\screens\reports_screen.dart:975:15 - unused_local_variable
+  error - The method '_buildMiniStat' isn't defined for the type '_ReportsScreenState' - lib\features\admin\presentation\screens\reports_screen.dart:1291:28 - undefined_method
+  error - The method '_buildMiniStat' isn't defined for the type '_ReportsScreenState' - lib\features\admin\presentation\screens\reports_screen.dart:1295:28 - undefined_method
+  error - The method '_buildMiniStat' isn't defined for the type '_ReportsScreenState' - lib\features\admin\presentation\screens\reports_screen.dart:1299:28 - undefined_method
+  error - The method '_buildMiniStat' isn't defined for the type '_ReportsScreenState' - lib\features\admin\presentation\screens\reports_screen.dart:1622:28 - undefined_method
+  error - The method '_buildMiniStat' isn't defined for the type '_ReportsScreenState' - lib\features\admin\presentation\screens\reports_screen.dart:1626:28 - undefined_method
+  error - The method '_buildMiniStat' isn't defined for the type '_ReportsScreenState' - lib\features\admin\presentation\screens\reports_screen.dart:1630:28 - undefined_method
+  error - The method '_buildOrderMetrics' isn't defined for the type '_OwnerAnalyticsScreenState' - lib\features\owner\presentation\screens\owner_analytics_screen.dart:48:28 - undefined_method
+  error - The method '_buildTopPerformers' isn't defined for the type '_OwnerAnalyticsScreenState' - lib\features\owner\presentation\screens\owner_analytics_screen.dart:54:28 - undefined_method
+  error - The method '_buildTopProductsSection' isn't defined for the type '_OwnerAnalyticsScreenState' - lib\features\owner\presentation\screens\owner_analytics_screen.dart:60:28 - undefined_method
+  error - The method '_buildSystemHealth' isn't defined for the type '_OwnerAnalyticsScreenState' - lib\features\owner\presentation\screens\owner_analytics_screen.dart:66:28 - undefined_method
+  error - The method '_filterOrdersByPeriod' isn't defined for the type '_OwnerAnalyticsScreenState' - lib\features\owner\presentation\screens\owner_analytics_screen.dart:180:28 - undefined_method
+  error - The method '_buildMiniStat' isn't defined for the type '_OwnerAnalyticsScreenState' - lib\features\owner\presentation\screens\owner_analytics_screen.dart:321:25 - undefined_method
+  error - The method '_buildMiniStat' isn't defined for the type '_OwnerAnalyticsScreenState' - lib\features\owner\presentation\screens\owner_analytics_screen.dart:323:25 - undefined_method
+  error - The method '_buildMiniStat' isn't defined for the type '_OwnerAnalyticsScreenState' - lib\features\owner\presentation\screens\owner_analytics_screen.dart:325:25 - undefined_method
+  error - Expected to find ',' - lib\features\owner\presentation\screens\owner_analytics_screen.dart:338:3 - expected_token
+  error - Function expressions can't be named - lib\features\owner\presentation\screens\owner_analytics_screen.dart:338:10 - named_function_expression
+  error - Too many positional arguments: 0 expected, but 7 found - lib\features\owner\presentation\screens\owner_analytics_screen.dart:338:24 - extra_positional_arguments_could_be_named
+  error - Expected to find ',' - lib\features\owner\presentation\screens\owner_analytics_screen.dart:348:3 - expected_token
+  error - Function expressions can't be named - lib\features\owner\presentation\screens\owner_analytics_screen.dart:348:10 - named_function_expression
+  error - The method '_filterOrdersByPeriod' isn't defined for the type '_OwnerAnalyticsScreenState' - lib\features\owner\presentation\screens\owner_analytics_screen.dart:354:24 - undefined_method
+  error - The method '_MetricBox' isn't defined for the type '_OwnerAnalyticsScreenState' - lib\features\owner\presentation\screens\owner_analytics_screen.dart:377:17 - undefined_method
+  error - The method '_MetricBox' isn't defined for the type '_OwnerAnalyticsScreenState' - lib\features\owner\presentation\screens\owner_analytics_screen.dart:378:17 - undefined_method
+  error - The method '_MetricBox' isn't defined for the type '_OwnerAnalyticsScreenState' - lib\features\owner\presentation\screens\owner_analytics_screen.dart:379:17 - undefined_method
+  error - The method '_MetricBox' isn't defined for the type '_OwnerAnalyticsScreenState' - lib\features\owner\presentation\screens\owner_analytics_screen.dart:380:17 - undefined_method
+  error - The method '_MetricBox' isn't defined for the type '_OwnerAnalyticsScreenState' - lib\features\owner\presentation\screens\owner_analytics_screen.dart:381:17 - undefined_method
+  error - The method '_MetricBox' isn't defined for the type '_OwnerAnalyticsScreenState' - lib\features\owner\presentation\screens\owner_analytics_screen.dart:382:17 - undefined_method
+  error - Expected to find ',' - lib\features\owner\presentation\screens\owner_analytics_screen.dart:391:3 - expected_token
+  error - Function expressions can't be named - lib\features\owner\presentation\screens\owner_analytics_screen.dart:391:10 - named_function_expression
+  error - The method '_filterOrdersByPeriod' isn't defined for the type '_OwnerAnalyticsScreenState' - lib\features\owner\presentation\screens\owner_analytics_screen.dart:402:28 - undefined_method
+  error - Expected to find ',' - lib\features\owner\presentation\screens\owner_analytics_screen.dart:533:3 - expected_token
+  error - Function expressions can't be named - lib\features\owner\presentation\screens\owner_analytics_screen.dart:533:10 - named_function_expression
+  error - The method '_filterOrdersByPeriod' isn't defined for the type '_OwnerAnalyticsScreenState' - lib\features\owner\presentation\screens\owner_analytics_screen.dart:539:24 - undefined_method
+  error - Expected to find ',' - lib\features\owner\presentation\screens\owner_analytics_screen.dart:670:3 - expected_token
+  error - Function expressions can't be named - lib\features\owner\presentation\screens\owner_analytics_screen.dart:670:10 - named_function_expression
+  error - The method '_combineStreams' isn't defined for the type '_OwnerAnalyticsScreenState' - lib\features\owner\presentation\screens\owner_analytics_screen.dart:672:15 - undefined_method
+  error - The method '_HealthItem' isn't defined for the type '_OwnerAnalyticsScreenState' - lib\features\owner\presentation\screens\owner_analytics_screen.dart:709:19 - undefined_method
+  error - The method '_HealthItem' isn't defined for the type '_OwnerAnalyticsScreenState' - lib\features\owner\presentation\screens\owner_analytics_screen.dart:711:19 - undefined_method
+  error - The method '_HealthItem' isn't defined for the type '_OwnerAnalyticsScreenState' - lib\features\owner\presentation\screens\owner_analytics_screen.dart:713:19 - undefined_method
+  error - The method '_HealthItem' isn't defined for the type '_OwnerAnalyticsScreenState' - lib\features\owner\presentation\screens\owner_analytics_screen.dart:715:19 - undefined_method
+  error - Expected to find ',' - lib\features\owner\presentation\screens\owner_analytics_screen.dart:725:3 - expected_token
+  error - Function expressions can't be named - lib\features\owner\presentation\screens\owner_analytics_screen.dart:725:31 - named_function_expression
+  error - Expected to find ',' - lib\features\owner\presentation\screens\owner_analytics_screen.dart:738:3 - expected_token
+  error - Function expressions can't be named - lib\features\owner\presentation\screens\owner_analytics_screen.dart:738:31 - named_function_expression
+  error - Expected to find ';' - lib\features\owner\presentation\screens\owner_analytics_screen.dart:741:3 - expected_token
+  error - Expected to find ')' - lib\features\owner\presentation\screens\owner_analytics_screen.dart:742:1 - expected_token
+  error - Classes can't be declared inside other classes - lib\features\owner\presentation\screens\owner_analytics_screen.dart:744:1 - class_in_class
+  error - Expected a class member - lib\features\owner\presentation\screens\owner_analytics_screen.dart:744:18 - expected_class_member
+   info - The variable name 'StatelessWidget' isn't a lowerCamelCase identifier - lib\features\owner\presentation\screens\owner_analytics_screen.dart:744:26 - non_constant_identifier_names
+  error - Methods must have an explicit list of parameters - lib\features\owner\presentation\screens\owner_analytics_screen.dart:744:26 - missing_method_parameters
+  error - The name '_MetricBox' isn't a class - lib\features\owner\presentation\screens\owner_analytics_screen.dart:750:9 - creation_with_non_type
+   info - 'required' is deprecated and shouldn't be used. In Dart 2.12 and later, use the built-in `required` keyword to mark a named parameter as required - lib\features\owner\presentation\screens\owner_analytics_screen.dart:750:21 - deprecated_member_use
+  error - Expected to find ',' - lib\features\owner\presentation\screens\owner_analytics_screen.dart:750:30 - expected_token
+  error - The getter 'label' isn't defined for the type '_OwnerAnalyticsScreenState' - lib\features\owner\presentation\screens\owner_analytics_screen.dart:750:35 - undefined_getter
+   info - 'required' is deprecated and shouldn't be used. In Dart 2.12 and later, use the built-in `required` keyword to mark a named parameter as required - lib\features\owner\presentation\screens\owner_analytics_screen.dart:750:42 - deprecated_member_use
+  error - Expected to find ',' - lib\features\owner\presentation\screens\owner_analytics_screen.dart:750:51 - expected_token
+  error - The getter 'value' isn't defined for the type '_OwnerAnalyticsScreenState' - lib\features\owner\presentation\screens\owner_analytics_screen.dart:750:56 - undefined_getter
+   info - 'required' is deprecated and shouldn't be used. In Dart 2.12 and later, use the built-in `required` keyword to mark a named parameter as required - lib\features\owner\presentation\screens\owner_analytics_screen.dart:750:63 - deprecated_member_use
+  error - Expected to find ',' - lib\features\owner\presentation\screens\owner_analytics_screen.dart:750:72 - expected_token
+  error - The getter 'icon' isn't defined for the type '_OwnerAnalyticsScreenState' - lib\features\owner\presentation\screens\owner_analytics_screen.dart:750:77 - undefined_getter
+   info - 'required' is deprecated and shouldn't be used. In Dart 2.12 and later, use the built-in `required` keyword to mark a named parameter as required - lib\features\owner\presentation\screens\owner_analytics_screen.dart:750:83 - deprecated_member_use
+  error - Expected to find ',' - lib\features\owner\presentation\screens\owner_analytics_screen.dart:750:92 - expected_token
+  error - The getter 'color' isn't defined for the type '_OwnerAnalyticsScreenState' - lib\features\owner\presentation\screens\owner_analytics_screen.dart:750:97 - undefined_getter
+warning - The declaration 'build' isn't referenced - lib\features\owner\presentation\screens\owner_analytics_screen.dart:753:10 - unused_element
+  error - The final variable 'color' can't be read because it's potentially unassigned at this point - lib\features\owner\presentation\screens\owner_analytics_screen.dart:756:16 - read_potentially_unassigned_final
+  error - The final variable 'color' can't be read because it's potentially unassigned at this point - lib\features\owner\presentation\screens\owner_analytics_screen.dart:758:35 - read_potentially_unassigned_final
+  error - The final variable 'icon' can't be read because it's potentially unassigned at this point - lib\features\owner\presentation\screens\owner_analytics_screen.dart:763:16 - read_potentially_unassigned_final
+  error - The final variable 'color' can't be read because it's potentially unassigned at this point - lib\features\owner\presentation\screens\owner_analytics_screen.dart:763:29 - read_potentially_unassigned_final
+  error - The final variable 'value' can't be read because it's potentially unassigned at this point - lib\features\owner\presentation\screens\owner_analytics_screen.dart:765:16 - read_potentially_unassigned_final
+  error - The final variable 'color' can't be read because it's potentially unassigned at this point - lib\features\owner\presentation\screens\owner_analytics_screen.dart:765:90 - read_potentially_unassigned_final
+  error - The final variable 'label' can't be read because it's potentially unassigned at this point - lib\features\owner\presentation\screens\owner_analytics_screen.dart:767:16 - read_potentially_unassigned_final
+  error - Classes can't be declared inside other classes - lib\features\owner\presentation\screens\owner_analytics_screen.dart:774:1 - class_in_class
+  error - Expected a class member - lib\features\owner\presentation\screens\owner_analytics_screen.dart:774:19 - expected_class_member
+   info - The variable name 'StatelessWidget' isn't a lowerCamelCase identifier - lib\features\owner\presentation\screens\owner_analytics_screen.dart:774:27 - non_constant_identifier_names
+  error - Methods must have an explicit list of parameters - lib\features\owner\presentation\screens\owner_analytics_screen.dart:774:27 - missing_method_parameters
+  error - The name 'StatelessWidget' is already defined - lib\features\owner\presentation\screens\owner_analytics_screen.dart:774:27 - duplicate_definition
+  error - The name '_HealthItem' isn't a class - lib\features\owner\presentation\screens\owner_analytics_screen.dart:781:9 - creation_with_non_type
+   info - 'required' is deprecated and shouldn't be used. In Dart 2.12 and later, use the built-in `required` keyword to mark a named parameter as required - lib\features\owner\presentation\screens\owner_analytics_screen.dart:782:5 - deprecated_member_use
+  error - Expected to find ',' - lib\features\owner\presentation\screens\owner_analytics_screen.dart:782:14 - expected_token
+  error - The getter 'icon' isn't defined for the type '_OwnerAnalyticsScreenState' - lib\features\owner\presentation\screens\owner_analytics_screen.dart:782:19 - undefined_getter
+   info - 'required' is deprecated and shouldn't be used. In Dart 2.12 and later, use the built-in `required` keyword to mark a named parameter as required - lib\features\owner\presentation\screens\owner_analytics_screen.dart:783:5 - deprecated_member_use
+  error - Expected to find ',' - lib\features\owner\presentation\screens\owner_analytics_screen.dart:783:14 - expected_token
+  error - The getter 'label' isn't defined for the type '_OwnerAnalyticsScreenState' - lib\features\owner\presentation\screens\owner_analytics_screen.dart:783:19 - undefined_getter
+   info - 'required' is deprecated and shouldn't be used. In Dart 2.12 and later, use the built-in `required` keyword to mark a named parameter as required - lib\features\owner\presentation\screens\owner_analytics_screen.dart:784:5 - deprecated_member_use
+  error - Expected to find ',' - lib\features\owner\presentation\screens\owner_analytics_screen.dart:784:14 - expected_token
+  error - The getter 'value' isn't defined for the type '_OwnerAnalyticsScreenState' - lib\features\owner\presentation\screens\owner_analytics_screen.dart:784:19 - undefined_getter
+   info - 'required' is deprecated and shouldn't be used. In Dart 2.12 and later, use the built-in `required` keyword to mark a named parameter as required - lib\features\owner\presentation\screens\owner_analytics_screen.dart:785:5 - deprecated_member_use
+  error - Expected to find ',' - lib\features\owner\presentation\screens\owner_analytics_screen.dart:785:14 - expected_token
+  error - The getter 'percentage' isn't defined for the type '_OwnerAnalyticsScreenState' - lib\features\owner\presentation\screens\owner_analytics_screen.dart:785:19 - undefined_getter
+  error - The setter 'isWarning' isn't defined for the type '_OwnerAnalyticsScreenState' - lib\features\owner\presentation\screens\owner_analytics_screen.dart:786:10 - undefined_setter
+warning - The declaration 'build' isn't referenced - lib\features\owner\presentation\screens\owner_analytics_screen.dart:790:10 - unused_element
+  error - The final variable 'isWarning' can't be read because it's potentially unassigned at this point - lib\features\owner\presentation\screens\owner_analytics_screen.dart:791:19 - read_potentially_unassigned_final
+  error - The final variable 'percentage' can't be read because it's potentially unassigned at this point - lib\features\owner\presentation\screens\owner_analytics_screen.dart:792:12 - read_potentially_unassigned_final
+  error - The final variable 'percentage' can't be read because it's potentially unassigned at this point - lib\features\owner\presentation\screens\owner_analytics_screen.dart:793:12 - read_potentially_unassigned_final
+  error - The final variable 'percentage' can't be read because it's potentially unassigned at this point - lib\features\owner\presentation\screens\owner_analytics_screen.dart:793:55 - read_potentially_unassigned_final
+  error - The final variable 'icon' can't be read because it's potentially unassigned at this point - lib\features\owner\presentation\screens\owner_analytics_screen.dart:803:27 - read_potentially_unassigned_final
+  error - The final variable 'label' can't be read because it's potentially unassigned at this point - lib\features\owner\presentation\screens\owner_analytics_screen.dart:806:34 - read_potentially_unassigned_final
+  error - The final variable 'value' can't be read because it's potentially unassigned at this point - lib\features\owner\presentation\screens\owner_analytics_screen.dart:807:18 - read_potentially_unassigned_final
+  error - The final variable 'percentage' can't be read because it's potentially unassigned at this point - lib\features\owner\presentation\screens\owner_analytics_screen.dart:814:20 - read_potentially_unassigned_final
+  error - Expected to find '}' - lib\features\owner\presentation\screens\owner_analytics_screen.dart:824:1 - expected_token
+

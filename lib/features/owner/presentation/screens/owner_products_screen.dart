@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:go_router/go_router.dart';
 
 class OwnerProductsScreen extends ConsumerStatefulWidget {
   const OwnerProductsScreen({super.key});
@@ -51,7 +50,7 @@ class _OwnerProductsScreenState extends ConsumerState<OwnerProductsScreen> {
           margin: const EdgeInsets.all(16),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.orange.withOpacity(0.1),
+            color: Colors.orange.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: Colors.orange, width: 2),
           ),
@@ -74,7 +73,7 @@ class _OwnerProductsScreenState extends ConsumerState<OwnerProductsScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          '⚠️ LOW STOCK ALERT',
+                          'âš ï¸ LOW STOCK ALERT',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -281,7 +280,7 @@ class _OwnerProductsScreenState extends ConsumerState<OwnerProductsScreen> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: Colors.orange.withOpacity(0.1),
+                            color: Colors.orange.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(color: Colors.orange),
                           ),
@@ -429,14 +428,14 @@ class _OwnerProductsScreenState extends ConsumerState<OwnerProductsScreen> {
               for (final category in sortedCategories) {
                 final categoryProducts = groupedProducts[category]!;
                 
-                final categoryTotalSales = categoryProducts.fold<int>(0, (sum, p) => sum + (productSales[p.id] ?? 0));
-                final categoryRevenue = categoryProducts.fold<double>(0, (sum, p) => sum + (productRevenue[p.id] ?? 0));
+                final categoryTotalSales = categoryProducts.fold<int>(0, (total, p) => total + (productSales[p.id] ?? 0));
+                final categoryRevenue = categoryProducts.fold<double>(0, (total, p) => total + (productRevenue[p.id] ?? 0));
 
                 // Add category header
                 productWidgets.add(
                   Card(
                     margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                    color: Colors.blue.withOpacity(0.05),
+                    color: Colors.blue.withValues(alpha: 0.05),
                     child: Padding(
                       padding: const EdgeInsets.all(12),
                       child: Row(
@@ -455,7 +454,7 @@ class _OwnerProductsScreenState extends ConsumerState<OwnerProductsScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(category, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                                Text('${categoryProducts.length} products • $categoryTotalSales sold • ₹${categoryRevenue.toStringAsFixed(0)} revenue',
+                                Text('${categoryProducts.length} products â€¢ $categoryTotalSales sold â€¢ ₹${categoryRevenue.toStringAsFixed(0)} revenue',
                                     style: const TextStyle(fontSize: 11, color: Colors.grey)),
                               ],
                             ),
@@ -573,7 +572,7 @@ class _ProductCard extends StatelessWidget {
             if (isLowStock && isActive)
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(color: Colors.orange.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                decoration: BoxDecoration(color: Colors.orange.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -586,7 +585,7 @@ class _ProductCard extends StatelessWidget {
             if (!isActive)
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(color: Colors.red.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                decoration: BoxDecoration(color: Colors.red.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
                 child: const Text('Inactive', style: TextStyle(fontSize: 9, color: Colors.red)),
               ),
           ],
@@ -636,7 +635,7 @@ class _ProductCard extends StatelessWidget {
                   margin: const EdgeInsets.symmetric(vertical: 8),
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.orange.withOpacity(0.1),
+                    color: Colors.orange.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: Colors.orange),
                   ),

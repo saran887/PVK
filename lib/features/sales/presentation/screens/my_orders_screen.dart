@@ -147,7 +147,6 @@ class _MyOrdersScreenState extends ConsumerState<MyOrdersScreen> {
                 final totalItems = order['totalItems'] ?? 0;
                 final status = order['status'] ?? 'pending';
                 final createdAt = order['createdAt'] as Timestamp?;
-                final items = order['items'] as List<dynamic>? ?? [];
 
                 String formattedDate = 'N/A';
                 if (createdAt != null) {
@@ -231,7 +230,7 @@ class _MyOrdersScreenState extends ConsumerState<MyOrdersScreen> {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                               decoration: BoxDecoration(
-                                color: statusColor.withOpacity(0.15),
+                                color: statusColor.withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(20),
                                 border: Border.all(color: statusColor, width: 1.5),
                               ),
@@ -283,7 +282,7 @@ class _MyOrdersScreenState extends ConsumerState<MyOrdersScreen> {
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: Colors.green.withOpacity(0.1),
+                            color: Colors.green.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Row(
@@ -323,7 +322,6 @@ class _MyOrdersScreenState extends ConsumerState<MyOrdersScreen> {
   void _showOrderDetails(BuildContext context, String orderId, Map<String, dynamic> order) {
     final shopName = order['shopName'] ?? 'Unknown Shop';
     final totalAmount = order['totalAmount'] ?? 0;
-    final totalItems = order['totalItems'] ?? 0;
     final status = order['status'] ?? 'pending';
     final createdAt = order['createdAt'] as Timestamp?;
     final items = order['items'] as List<dynamic>? ?? [];
@@ -473,7 +471,7 @@ class _MyOrdersScreenState extends ConsumerState<MyOrdersScreen> {
                               Container(
                                 padding: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(
-                                  color: Colors.blue.withOpacity(0.1),
+                                  color: Colors.blue.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: const Icon(Icons.inventory_2, size: 20, color: Colors.blue),
@@ -492,7 +490,7 @@ class _MyOrdersScreenState extends ConsumerState<MyOrdersScreen> {
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      'Qty: $quantity × ₹${price.toStringAsFixed(2)}',
+                                      'Qty: $quantity Ã— ₹${price.toStringAsFixed(2)}',
                                       style: TextStyle(
                                         fontSize: 12,
                                         color: Colors.grey[600],
@@ -551,7 +549,7 @@ class _MyOrdersScreenState extends ConsumerState<MyOrdersScreen> {
                           ),
                         ),
                       );
-                    }).toList(),
+                    }),
                   const SizedBox(height: 16),
                   Card(
                     color: Colors.green[50],
@@ -610,7 +608,7 @@ class _FilterChip extends StatelessWidget {
       label: Text(label),
       selected: isSelected,
       onSelected: (_) => onSelected(),
-      selectedColor: chipColor.withOpacity(0.2),
+      selectedColor: chipColor.withValues(alpha: 0.2),
       checkmarkColor: chipColor,
       labelStyle: TextStyle(
         color: isSelected ? chipColor : Colors.grey[700],

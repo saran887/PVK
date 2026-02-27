@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
@@ -9,7 +8,6 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class BillGenerator {
@@ -419,6 +417,7 @@ class BillGenerator {
       }
 
       // Always save the PDF to device (regardless of WhatsApp status)
+      if (!context.mounted) return;
       try {
         await _savePDFToDevice(
           bytes,

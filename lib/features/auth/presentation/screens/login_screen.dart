@@ -1,9 +1,7 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:go_router/go_router.dart';
 import 'package:sendotp_flutter_sdk/sendotp_flutter_sdk.dart';
 import '../../../../core/config/app_config.dart';
 import '../../providers/auth_provider.dart';
@@ -27,7 +25,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   final List<TextEditingController> _otpControllers = List.generate(4, (_) => TextEditingController());
   final List<FocusNode> _otpFocusNodes = List.generate(4, (_) => FocusNode());
   bool _isOtpSent = false;
-  String? _verificationId;
   String? _reqId; // Added for MSG91 OTP
   UserModel? _pendingUser;
 
@@ -216,7 +213,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         throw Exception(response?['message'] ?? 'Failed to send OTP');
       }
     } catch (e) {
-      debugPrint('❌ Error sending OTP: $e');
+      debugPrint('âŒ Error sending OTP: $e');
       _showMessage('Failed to send OTP. Try again.', isError: true);
       setState(() => _isLoading = false);
     }
@@ -252,7 +249,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         _clearOtp();
       }
     } catch (e) {
-      debugPrint('❌ OTP verification error: $e');
+      debugPrint('âŒ OTP verification error: $e');
       // Trigger shake animation on error
       setState(() => _shakeOtp = true);
       await Future.delayed(const Duration(milliseconds: 100));
@@ -274,7 +271,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         _showMessage('Login Successful!', isError: false);
       }
     } catch (e) {
-      debugPrint('❌ Final sign-in error: $e');
+      debugPrint('âŒ Final sign-in error: $e');
       if (mounted) _showMessage('Authentication failed: $e', isError: true);
       _clearCode();
     }
@@ -299,7 +296,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
     try {
       final authRepo = ref.read(authRepositoryProvider);
-      debugPrint('🔍 Looking for code: $code');
+      debugPrint('ðŸ” Looking for code: $code');
 
       // Try finding user with code as string first, then as number
       QuerySnapshot usersQuery = await FirebaseFirestore.instance
@@ -325,13 +322,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
       final userDoc = usersQuery.docs.first;
       final userData = userDoc.data() as Map<String, dynamic>;
-      debugPrint('✅ Found user: ${userData['name']} (${userData['role']})');
+      debugPrint('âœ… Found user: ${userData['name']} (${userData['role']})');
 
       final user = UserModel.fromFirestore(userData, id: userDoc.id);
       
       // Special check for Owner and Admin - Send OTP automatically
       if (user.code == '1000' || user.code == '1111' || user.role == UserRole.owner || user.role == UserRole.admin) {
-        debugPrint('🔐 Role-based security triggered for: ${user.role}');
+        debugPrint('ðŸ” Role-based security triggered for: ${user.role}');
         await _sendOtp(user);
       } else {
         // Direct login for other roles
@@ -341,7 +338,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         }
       }
     } catch (e) {
-      debugPrint('❌ Error signing in: $e');
+      debugPrint('âŒ Error signing in: $e');
       if (mounted) {
         _showMessage('Invalid code. Please try again.', isError: true);
         _clearCode();
@@ -382,7 +379,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       controller.clear();
     }
     _isOtpSent = false;
-    _verificationId = null;
     _reqId = null;
     _pendingUser = null;
     _focusNodes[0].requestFocus();
@@ -697,7 +693,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.08),
+            color: color.withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Row(
@@ -705,7 +701,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.15),
+                  color: color.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
@@ -713,7 +709,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontFamily: 'monospace',
-                    color: color.withOpacity(0.9),
+                    color: color.withValues(alpha: 0.9),
                   ),
                 ),
               ),

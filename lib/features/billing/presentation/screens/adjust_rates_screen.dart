@@ -47,7 +47,7 @@ class _AdjustRatesScreenState extends State<AdjustRatesScreen> {
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
+                      color: Colors.black.withValues(alpha: 0.1),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
@@ -143,7 +143,7 @@ class _AdjustRatesScreenState extends State<AdjustRatesScreen> {
                           ),
                         ),
                       );
-                    }).toList(),
+                    }),
                   ],
                 ),
               );
@@ -471,7 +471,7 @@ class _AdjustRatesScreenState extends State<AdjustRatesScreen> {
                           const Icon(Icons.check_circle, color: Colors.white),
                           const SizedBox(width: 8),
                           Expanded(
-                            child: Text('Price updated: ₹${currentPrice.toStringAsFixed(2)} → ₹${newPrice.toStringAsFixed(2)}'),
+                            child: Text('Price updated: ₹${currentPrice.toStringAsFixed(2)} â†’ ₹${newPrice.toStringAsFixed(2)}'),
                           ),
                         ],
                       ),

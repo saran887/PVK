@@ -580,7 +580,7 @@ class _ShopRecentItems extends StatelessWidget {
                         ],
                       ),
                     );
-                  }).toList(),
+                  }),
                 ],
               ),
             );
@@ -608,7 +608,7 @@ class _UpiPaymentCard extends StatelessWidget {
         border: Border.all(color: Colors.grey.shade200),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),
@@ -634,7 +634,8 @@ class _UpiPaymentCard extends StatelessWidget {
             child: QrImageView(
               data: qrData,
               size: 200,
-              foregroundColor: Colors.black,
+              eyeStyle: const QrEyeStyle(eyeShape: QrEyeShape.square, color: Colors.black),
+              dataModuleStyle: const QrDataModuleStyle(dataModuleShape: QrDataModuleShape.square, color: Colors.black),
               backgroundColor: Colors.white,
             ),
           ),
@@ -651,9 +652,11 @@ class _UpiPaymentCard extends StatelessWidget {
                 if (await canLaunchUrl(uri)) {
                   await launchUrl(uri, mode: LaunchMode.externalApplication);
                 } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Could not open UPI app')),
-                  );
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Could not open UPI app')),
+                    );
+                  }
                 }
               },
               label: const Text('Open in UPI app'),

@@ -300,7 +300,7 @@ class _ShopCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       child: ExpansionTile(
         leading: CircleAvatar(
-          backgroundColor: isActive ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
+          backgroundColor: isActive ? Colors.green.withValues(alpha: 0.1) : Colors.red.withValues(alpha: 0.1),
           child: Icon(Icons.store, color: isActive ? Colors.green : Colors.red),
         ),
         title: Row(
@@ -310,7 +310,7 @@ class _ShopCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  color: Colors.red.withOpacity(0.1),
+                  color: Colors.red.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Text('Inactive', style: TextStyle(fontSize: 10, color: Colors.red)),
@@ -358,7 +358,7 @@ class _ShopCard extends StatelessWidget {
                         icon: const Icon(Icons.visibility),
                         label: const Text('View Orders'),
                         onPressed: () {
-                          // TODO: Navigate to shop orders
+                          context.push('/owner/shop-performance/$shopId');
                         },
                       ),
                     ),

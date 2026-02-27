@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:go_router/go_router.dart';
@@ -114,7 +114,7 @@ class _OwnerUsersScreenState extends ConsumerState<OwnerUsersScreen> {
               Positioned(
                 right: -20,
                 top: -20,
-                child: Icon(Icons.people_alt_rounded, size: 120, color: Colors.white.withOpacity(0.15)),
+                child: Icon(Icons.people_alt_rounded, size: 120, color: Colors.white.withValues(alpha: 0.15)),
               ),
             ],
           ),
@@ -175,9 +175,9 @@ class _OwnerUsersScreenState extends ConsumerState<OwnerUsersScreen> {
               return Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
+                  color: color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: color.withOpacity(0.3)),
+                  border: Border.all(color: color.withValues(alpha: 0.3)),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -206,7 +206,7 @@ class _OwnerUsersScreenState extends ConsumerState<OwnerUsersScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: mainColor.withOpacity(0.1),
+            color: mainColor.withValues(alpha: 0.1),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -251,7 +251,7 @@ class _OwnerUsersScreenState extends ConsumerState<OwnerUsersScreen> {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4))],
+                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 4))],
               ),
               child: TextField(
                 decoration: InputDecoration(
@@ -271,7 +271,7 @@ class _OwnerUsersScreenState extends ConsumerState<OwnerUsersScreen> {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4))],
+              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 4))],
             ),
             child: DropdownButtonHideUnderline(
               child: DropdownButton<String>(
@@ -391,7 +391,7 @@ class _UserCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -403,7 +403,7 @@ class _UserCard extends StatelessWidget {
           width: 48,
           height: 48,
           decoration: BoxDecoration(
-            color: roleColor.withOpacity(0.1),
+            color: roleColor.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
           child: Icon(_getRoleIcon(role), color: roleColor),
@@ -423,7 +423,7 @@ class _UserCard extends StatelessWidget {
                 margin: const EdgeInsets.only(left: 8),
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.red.withOpacity(0.1),
+                  color: Colors.red.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Text('Inactive', style: TextStyle(fontSize: 10, color: Colors.red, fontWeight: FontWeight.bold)),
@@ -444,7 +444,7 @@ class _UserCard extends StatelessWidget {
                 ),
                 if (createdAt != null) ...[
                   const SizedBox(width: 8),
-                  const Text('•', style: TextStyle(color: Colors.grey)),
+                  const Text('â€¢', style: TextStyle(color: Colors.grey)),
                   const SizedBox(width: 8),
                   Text(
                     'Joined ${createdAt.day}/${createdAt.month}/${createdAt.year}', 

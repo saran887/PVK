@@ -200,8 +200,8 @@ class _SalesHomeScreenState extends ConsumerState<SalesHomeScreen> {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            Theme.of(context).primaryColor.withOpacity(0.08),
-            Theme.of(context).primaryColor.withOpacity(0.03),
+            Theme.of(context).primaryColor.withValues(alpha: 0.08),
+            Theme.of(context).primaryColor.withValues(alpha: 0.03),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -215,7 +215,7 @@ class _SalesHomeScreenState extends ConsumerState<SalesHomeScreen> {
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: Theme.of(context).primaryColor.withOpacity(0.15),
+              color: Theme.of(context).primaryColor.withValues(alpha: 0.15),
               shape: BoxShape.circle,
             ),
             child: Icon(
@@ -263,7 +263,7 @@ class _SalesHomeScreenState extends ConsumerState<SalesHomeScreen> {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: Colors.green.withOpacity(0.1),
+              color: Colors.green.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
             ),
             child: const Icon(Icons.trending_up_rounded, color: Colors.green, size: 22),

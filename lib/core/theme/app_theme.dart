@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 class AppTheme {
   // Prevent instantiation
@@ -183,7 +183,7 @@ class AppTheme {
     ),
     chipTheme: ChipThemeData(
       backgroundColor: Colors.grey[100],
-      selectedColor: primaryColor.withOpacity(0.15),
+      selectedColor: primaryColor.withValues(alpha: 0.15),
       labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       shape: RoundedRectangleBorder(
@@ -254,6 +254,6 @@ class AppTheme {
 
   // Helper method to get status background color
   static Color getStatusBackgroundColor(String status) {
-    return getStatusColor(status).withOpacity(0.1);
+    return getStatusColor(status).withValues(alpha: 0.1);
   }
 }

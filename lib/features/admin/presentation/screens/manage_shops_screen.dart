@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:go_router/go_router.dart';
@@ -37,7 +37,7 @@ class _ManageShopsScreenState extends ConsumerState<ManageShopsScreen> {
               color: Colors.white,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.04),
+                  color: Colors.black.withValues(alpha: 0.04),
                   blurRadius: 6,
                   offset: const Offset(0, 2),
                 ),
@@ -388,7 +388,6 @@ class _ManageShopsScreenState extends ConsumerState<ManageShopsScreen> {
                       valueColor:
                           shop['isActive'] == true ? Colors.green : Colors.red,
                     ),
-                    const SizedBox(height: 20),
                     // Action Buttons
                     Row(
                       children: [
@@ -396,11 +395,28 @@ class _ManageShopsScreenState extends ConsumerState<ManageShopsScreen> {
                           child: OutlinedButton.icon(
                             onPressed: () {
                               Navigator.pop(context);
+                              context.push('/admin/shop-performance/$shopId');
+                            },
+                            icon: const Icon(Icons.analytics, color: Colors.blue),
+                            label: const Text('Performance', style: TextStyle(color: Colors.blue)),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              side: BorderSide(color: Colors.blue.shade200),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () {
+                              Navigator.pop(context);
                               context.push('/admin/edit-shop/$shopId');
                             },
                             icon: const Icon(Icons.edit, color: Colors.black87),
-                            label: const Text('Edit',
-                                style: TextStyle(color: Colors.black87)),
+                            label: const Text('Edit', style: TextStyle(color: Colors.black87)),
                             style: OutlinedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 12),
                               side: BorderSide(color: Colors.grey[300]!),
@@ -410,7 +426,11 @@ class _ManageShopsScreenState extends ConsumerState<ManageShopsScreen> {
                             ),
                           ),
                         ),
-                        const SizedBox(width: 12),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
                         Expanded(
                           child: OutlinedButton.icon(
                             onPressed: () async {

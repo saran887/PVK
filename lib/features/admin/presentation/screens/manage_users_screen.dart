@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:go_router/go_router.dart';
@@ -73,7 +73,7 @@ class _ManageUsersScreenState extends ConsumerState<ManageUsersScreen> {
               color: Colors.white,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.04),
+                  color: Colors.black.withValues(alpha: 0.04),
                   blurRadius: 6,
                   offset: const Offset(0, 2),
                 ),
@@ -208,7 +208,6 @@ class _ManageUsersScreenState extends ConsumerState<ManageUsersScreen> {
                     final phone = user['phone'] ?? '';
                     final role = user['role'] ?? 'Unknown';
                     final isActive = user['isActive'] ?? true;
-                    final code = user['code'] ?? '';
 
                     return Card(
                       margin: const EdgeInsets.only(bottom: 12),
@@ -229,7 +228,7 @@ class _ManageUsersScreenState extends ConsumerState<ManageUsersScreen> {
                                 width: 50,
                                 height: 50,
                                 decoration: BoxDecoration(
-                                  color: getRoleColor(role).withOpacity(0.12),
+                                  color: getRoleColor(role).withValues(alpha: 0.12),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Icon(
@@ -262,7 +261,7 @@ class _ManageUsersScreenState extends ConsumerState<ManageUsersScreen> {
                                             vertical: 4,
                                           ),
                                           decoration: BoxDecoration(
-                                            color: getRoleColor(role).withOpacity(0.1),
+                                            color: getRoleColor(role).withValues(alpha: 0.1),
                                             borderRadius: BorderRadius.circular(8),
                                             border: Border.all(
                                               color: getRoleColor(role),
@@ -422,7 +421,7 @@ class _ManageUsersScreenState extends ConsumerState<ManageUsersScreen> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: getRoleColor(role).withOpacity(0.12),
+                        color: getRoleColor(role).withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Icon(getRoleIcon(role), color: getRoleColor(role), size: 26),

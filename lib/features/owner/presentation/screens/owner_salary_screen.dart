@@ -190,7 +190,7 @@ class _OwnerSalaryScreenState extends ConsumerState<OwnerSalaryScreen> {
             borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.2),
+                color: Colors.black.withValues(alpha: 0.2),
                 blurRadius: 15,
                 offset: const Offset(0, 8),
               ),
@@ -300,7 +300,7 @@ class _OwnerSalaryScreenState extends ConsumerState<OwnerSalaryScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -435,7 +435,7 @@ class _EmployeeCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -457,7 +457,7 @@ class _EmployeeCard extends StatelessWidget {
               children: [
                 CircleAvatar(
                   radius: 24,
-                  backgroundColor: roleColor.withOpacity(0.1),
+                  backgroundColor: roleColor.withValues(alpha: 0.1),
                   child: Icon(_getRoleIcon(role), color: roleColor, size: 24),
                 ),
                 const SizedBox(width: 16),
@@ -503,7 +503,7 @@ class _EmployeeCard extends StatelessWidget {
                           ),
                           if (employeeCode.isNotEmpty) ...[
                             const SizedBox(width: 8),
-                            const Text('•', style: TextStyle(color: Colors.grey)),
+                            const Text('â€¢', style: TextStyle(color: Colors.grey)),
                             const SizedBox(width: 8),
                             Text(employeeCode, style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
                           ],
@@ -711,7 +711,7 @@ class _EmployeeCard extends StatelessWidget {
                   await FirebaseFirestore.instance.collection('expenses').add({
                     'amount': netSalary,
                     'category': 'Salary',
-                    'description': 'Salary payment - $employeeName (Base: $baseSalary, Advances: $totalAdvances)',
+                    'description': 'Salary payment - $employeeName (Base: $baseSalary, Deducted Advances: $totalAdvances)',
                     'date': Timestamp.now(),
                     'employeeId': employeeId, 
                   });
@@ -766,7 +766,7 @@ class _EmployeeCard extends StatelessWidget {
               children: [
                 CircleAvatar(
                   radius: 20,
-                  backgroundColor: _getRoleColor(data['role'] ?? '').withOpacity(0.1),
+                  backgroundColor: _getRoleColor(data['role'] ?? '').withValues(alpha: 0.1),
                   child: Icon(_getRoleIcon(data['role'] ?? ''), color: _getRoleColor(data['role'] ?? ''), size: 20),
                 ),
                 const SizedBox(width: 12),

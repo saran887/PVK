@@ -56,6 +56,12 @@ class _OwnerAnalyticsScreenState extends ConsumerState<OwnerAnalyticsScreen> {
                   const SizedBox(height: 32),
                   SlideFadeIn(
                     show: _showContent,
+                    delay: const Duration(milliseconds: 350),
+                    child: _buildTopProductsSection(),
+                  ),
+                  const SizedBox(height: 32),
+                  SlideFadeIn(
+                    show: _showContent,
                     delay: const Duration(milliseconds: 400),
                     child: _buildSystemHealth(),
                   ),
@@ -65,38 +71,6 @@ class _OwnerAnalyticsScreenState extends ConsumerState<OwnerAnalyticsScreen> {
             ),
           ),
         ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final confirm = await showDialog<bool>(
-            context: context,
-            builder: (context) => AlertDialog(
-              title: const Text('Dev Wipe'),
-              content: const Text('Delete all expenses, salary values, and advances?'),
-              actions: [
-                TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-                ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('WIPE DATA')),
-              ],
-            ),
-          );
-          if (confirm == true) {
-            try {
-              final expenses = await FirebaseFirestore.instance.collection('expenses').get();
-              for (var doc in expenses.docs) {
-                await doc.reference.delete();
-              }
-              final users = await FirebaseFirestore.instance.collection('users').get();
-              for (var doc in users.docs) {
-                await doc.reference.update({'salary': 0});
-              }
-              if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Wipe Complete!')));
-            } catch (e) {
-              if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Wipe Error: $e')));
-            }
-          }
-        },
-        backgroundColor: Colors.red,
-        child: const Icon(Icons.delete_forever, color: Colors.white),
       ),
     );
   }
@@ -198,9 +172,22 @@ class _OwnerAnalyticsScreenState extends ConsumerState<OwnerAnalyticsScreen> {
           return const Center(child: Padding(padding: EdgeInsets.all(32), child: CircularProgressIndicator()));
         }
 
-        final orders = _filterOrdersByPeriod(snapshot.data!.docs);
+        return StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance.collection('products').snapshots(),
+          builder: (context, productsSnapshot) {
+            if (!productsSnapshot.hasData) return const SizedBox.shrink();
+
+            final orders = _filterOrdersByPeriod(snapshot.data!.docs);
+            final products = productsSnapshot.data!.docs;
+
+            final productBuyingPrices = {
+              for (var doc in products)
+                doc.id: ((doc.data() as Map)['buyingPrice'] as num?)?.toDouble() ?? 0.0
+            };
+
         
         double totalRevenue = 0;
+        double totalProfit = 0;
         double totalPending = 0;
         double totalPaid = 0;
         int completedOrders = 0;
@@ -210,11 +197,42 @@ class _OwnerAnalyticsScreenState extends ConsumerState<OwnerAnalyticsScreen> {
           final total = (data['totalAmount'] as num?)?.toDouble() ?? 0;
           final paymentStatus = data['paymentStatus'] ?? 'pending';
           final status = data['status'] ?? 'pending';
+          final items = data['items'] as List<dynamic>? ?? [];
           
           totalRevenue += total;
           
           if (paymentStatus == 'paid') {
             totalPaid += total;
+            
+            // Profit calculation logic exactly matching admin side
+            double orderProfit = 0;
+            for (var item in items) {
+              final quantity = (item['quantity'] as num?)?.toDouble() ?? 1;
+              final profit = (item['profit'] as num?)?.toDouble();
+              
+              if (profit != null) {
+                orderProfit += profit * quantity;
+              } else {
+                final price = (item['price'] as num?)?.toDouble() ?? 0;
+                var buyingPrice = (item['buyingPrice'] as num?)?.toDouble() ?? 0.0;
+                
+                if (buyingPrice == 0) {
+                  final productId = item['productId'] as String?;
+                  if (productId != null) {
+                    buyingPrice = productBuyingPrices[productId] ?? 0.0;
+                  }
+                }
+                
+                if (buyingPrice == 0 && price > 0) {
+                  buyingPrice = price / 1.1;
+                }
+
+                if (price > 0) {
+                  orderProfit += (price - buyingPrice) * quantity;
+                }
+              }
+            }
+            totalProfit += orderProfit;
           } else {
             totalPending += total;
           }
@@ -223,6 +241,8 @@ class _OwnerAnalyticsScreenState extends ConsumerState<OwnerAnalyticsScreen> {
             completedOrders++;
           }
         }
+        
+        final profitMargin = totalRevenue > 0 ? (totalProfit / totalRevenue * 100) : 0;
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -242,7 +262,7 @@ class _OwnerAnalyticsScreenState extends ConsumerState<OwnerAnalyticsScreen> {
                 ),
                 borderRadius: BorderRadius.circular(24),
                 boxShadow: [
-                  BoxShadow(color: Colors.blue.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8)),
+                  BoxShadow(color: Colors.blue.withValues(alpha: 0.3), blurRadius: 15, offset: const Offset(0, 8)),
                 ],
               ),
               child: Column(
@@ -269,6 +289,28 @@ class _OwnerAnalyticsScreenState extends ConsumerState<OwnerAnalyticsScreen> {
                       ),
                     ],
                   ),
+                  const SizedBox(height: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Net Profit (${profitMargin.toStringAsFixed(1)}%)', style: TextStyle(color: Colors.greenAccent.withValues(alpha: 0.9), fontSize: 13, fontWeight: FontWeight.w600)),
+                          const SizedBox(height: 4),
+                          Text(
+                            '₹${totalProfit.toStringAsFixed(0)}',
+                            style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: -0.5),
+                          ),
+                        ],
+                      ),
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(color: Colors.greenAccent.withValues(alpha: 0.2), shape: BoxShape.circle),
+                        child: const Icon(Icons.trending_up_rounded, color: Colors.greenAccent, size: 24),
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 24),
                   Container(
                     padding: const EdgeInsets.all(16),
@@ -288,6 +330,8 @@ class _OwnerAnalyticsScreenState extends ConsumerState<OwnerAnalyticsScreen> {
               ),
             ),
           ],
+        );
+          },
         );
       },
     );
@@ -417,7 +461,7 @@ class _OwnerAnalyticsScreenState extends ConsumerState<OwnerAnalyticsScreen> {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(20),
-                      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))],
+                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4))],
                       border: Border.all(color: Colors.grey.shade100),
                     ),
                     child: ListView.separated(
@@ -430,7 +474,9 @@ class _OwnerAnalyticsScreenState extends ConsumerState<OwnerAnalyticsScreen> {
                         QueryDocumentSnapshot? shop;
                         try {
                           shop = shops.firstWhere((s) => s.id == shopEntry.key);
-                        } catch (e) {}
+                        } catch (_) {
+                          // ignore missing shop
+                        }
                         if (shop == null) return const SizedBox.shrink();
                         
                         final shopData = shop.data() as Map;
@@ -486,6 +532,143 @@ class _OwnerAnalyticsScreenState extends ConsumerState<OwnerAnalyticsScreen> {
     );
   }
 
+  Widget _buildTopProductsSection() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance.collection('orders').snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) return const SizedBox.shrink();
+
+        final orders = _filterOrdersByPeriod(snapshot.data!.docs);
+        final Map<String, Map<String, dynamic>> productSales = {};
+        
+        for (final order in orders) {
+          final data = order.data() as Map<String, dynamic>;
+          final items = data['items'] as List<dynamic>? ?? [];
+          
+          for (var item in items) {
+            final productId = item['productId'] as String? ?? 'unknown';
+            final productName = item['name'] ?? item['productName'] ?? 'Unknown';
+            final quantity = (item['quantity'] as num?)?.toDouble() ?? 1;
+            final price = (item['price'] as num?)?.toDouble() ?? 0;
+            
+            if (!productSales.containsKey(productId)) {
+              productSales[productId] = {
+                'name': productName,
+                'quantity': 0.0,
+                'revenue': 0.0,
+              };
+            }
+            
+            productSales[productId]!['quantity'] = 
+                (productSales[productId]!['quantity'] as double) + quantity;
+            productSales[productId]!['revenue'] = 
+                (productSales[productId]!['revenue'] as double) + (price * quantity);
+          }
+        }
+
+        final sortedProducts = productSales.entries.toList()
+          ..sort((a, b) => (b.value['revenue'] as double).compareTo(a.value['revenue'] as double));
+        final topProducts = sortedProducts.take(5).toList();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Text('Top Selling Products', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(color: Colors.blue.shade50, borderRadius: BorderRadius.circular(20)),
+                  child: Row(
+                    children: [
+                      Icon(Icons.inventory_2_rounded, size: 14, color: Colors.blue.shade700),
+                      const SizedBox(width: 4),
+                      Text('Top 5', style: TextStyle(color: Colors.blue.shade800, fontSize: 12, fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            if (topProducts.isEmpty)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(32),
+                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.grey.shade200)),
+                child: Column(
+                  children: [
+                    Icon(Icons.inventory_2_outlined, size: 48, color: Colors.grey.shade300),
+                    const SizedBox(height: 16),
+                    Text('No product data available for this period', style: TextStyle(color: Colors.grey.shade500, fontSize: 14)),
+                  ],
+                ),
+              )
+            else
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4))],
+                  border: Border.all(color: Colors.grey.shade100),
+                ),
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: topProducts.length,
+                  separatorBuilder: (_, __) => Divider(height: 1, color: Colors.grey.shade100),
+                  itemBuilder: (context, index) {
+                    final product = topProducts[index].value;
+                    final name = product['name'];
+                    final quantity = product['quantity'];
+                    final revenue = product['revenue'];
+                    final isFirst = index == 0;
+
+                    return ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      leading: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: isFirst ? Colors.blue.shade50 : Colors.grey.shade50,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: isFirst ? Colors.blue.shade300 : Colors.grey.shade200),
+                        ),
+                        child: Center(
+                          child: isFirst
+                              ? Icon(Icons.star_rounded, color: Colors.blue.shade600, size: 20)
+                              : Text('${index + 1}', style: TextStyle(color: Colors.grey.shade600, fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                      title: Text(name, style: TextStyle(fontWeight: isFirst ? FontWeight.bold : FontWeight.w600, fontSize: 15)),
+                      subtitle: Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Row(
+                          children: [
+                            Icon(Icons.shopping_cart_checkout_rounded, size: 12, color: Colors.grey.shade400),
+                            const SizedBox(width: 4),
+                            Text('${quantity.toStringAsFixed(0)} units sold', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                          ],
+                        ),
+                      ),
+                      trailing: Text(
+                        '₹${revenue.toStringAsFixed(0)}',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: isFirst ? Colors.blue.shade700 : Colors.black87,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
   Widget _buildSystemHealth() {
     return StreamBuilder<List<QuerySnapshot>>(
       stream: _combineStreams([
@@ -520,7 +703,7 @@ class _OwnerAnalyticsScreenState extends ConsumerState<OwnerAnalyticsScreen> {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(20),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))],
+                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4))],
                 border: Border.all(color: Colors.grey.shade100),
               ),
               child: Column(
@@ -572,9 +755,9 @@ class _MetricBox extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: color.withOpacity(0.05),
+        color: color.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withOpacity(0.15)),
+        border: Border.all(color: color.withValues(alpha: 0.15)),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -618,7 +801,7 @@ class _HealthItem extends StatelessWidget {
           children: [
             Container(
               padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+              decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
               child: Icon(icon, size: 18, color: color),
             ),
             const SizedBox(width: 12),

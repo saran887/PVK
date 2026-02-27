@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../auth/providers/auth_provider.dart';
-import '../../../../shared/widgets/common_widgets.dart';
 
 // Order item model for better type safety
 class OrderItem {
@@ -601,7 +600,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
   }
 
   double _calculateTotal() {
-    return _orderItems.fold(0.0, (sum, item) => sum + item.total);
+    return _orderItems.fold(0.0, (total, item) => total + item.total);
   }
 
   Future<void> _createOrder() async {
@@ -822,7 +821,7 @@ class _SelectProductScreenState extends State<_SelectProductScreen> {
                                 ),
                               ),
                             );
-                          }).toList(),
+                          }),
                       ],
                     ),
                   );

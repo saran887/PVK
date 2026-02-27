@@ -287,7 +287,7 @@ class _AddPersonScreenState extends ConsumerState<AddPersonScreen> {
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<UserRole>(
-              value: _selectedRole,
+              initialValue: _selectedRole,
               decoration: const InputDecoration(
                 labelText: 'Role',
                 prefixIcon: Icon(Icons.admin_panel_settings),
@@ -324,7 +324,7 @@ class _AddPersonScreenState extends ConsumerState<AddPersonScreen> {
             if (_selectedRole == UserRole.sales || _selectedRole == UserRole.delivery) ...[
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                value: _selectedLocationId,
+                initialValue: _selectedLocationId,
                 decoration: const InputDecoration(
                   labelText: 'Assign Location',
                   prefixIcon: Icon(Icons.location_on),

@@ -32,6 +32,7 @@ import '../../features/owner/presentation/screens/owner_products_screen.dart';
 import '../../features/owner/presentation/screens/owner_analytics_screen.dart';
 import '../../features/owner/presentation/screens/owner_expenses_screen.dart';
 import '../../features/owner/presentation/screens/owner_salary_screen.dart';
+import '../../features/shared/presentation/screens/shop_performance_screen.dart';
 
 class GoRouterNotifier extends ChangeNotifier {
   final Ref _ref;
@@ -123,6 +124,13 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: 'salary',
             builder: (context, state) => const OwnerSalaryScreen(),
           ),
+          GoRoute(
+            path: 'shop-performance/:shopId',
+            builder: (context, state) {
+              final shopId = state.pathParameters['shopId']!;
+              return ShopPerformanceScreen(shopId: shopId);
+            },
+          ),
         ],
       ),
       GoRoute(
@@ -192,6 +200,13 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'reports',
             builder: (context, state) => const ReportsScreen(),
+          ),
+          GoRoute(
+            path: 'shop-performance/:shopId',
+            builder: (context, state) {
+              final shopId = state.pathParameters['shopId']!;
+              return ShopPerformanceScreen(shopId: shopId);
+            },
           ),
         ],
       ),

@@ -310,7 +310,6 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
 
                   double totalProfit = 0;
                   double totalRevenue = 0;
-                  double totalBuyingCost = 0;
                   int totalOrdersCount = orders.length;
                   int completedCount = 0;
                   int pendingCount = 0;
@@ -329,7 +328,6 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
                     if (paymentStatus != 'paid') continue;
                     
                     double orderProfit = 0;
-                    double orderCost = 0;
                     
                     for (var item in items) {
                       final quantity = (item['quantity'] as num?)?.toDouble() ?? 1;
@@ -354,14 +352,12 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
 
                         if (price > 0) {
                           orderProfit += (price - buyingPrice) * quantity;
-                          orderCost += buyingPrice * quantity;
                         }
                       }
                     }
                     
                     totalProfit += orderProfit;
                     totalRevenue += totalAmount;
-                    totalBuyingCost += orderCost;
                   }
 
                   final profitMargin = totalRevenue > 0 ? (totalProfit / totalRevenue * 100) : 0;
@@ -485,6 +481,32 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
           ),
           const SizedBox(height: 12),
           _buildTopProductsSection(),
+
+          const SizedBox(height: 24),
+          
+          Text(
+            'Top Shops',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.indigo.shade800,
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildTopPerformers(),
+
+          const SizedBox(height: 24),
+          
+          Text(
+            'System Health',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.indigo.shade800,
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildSystemHealth(),
         ],
       ),
     );
@@ -646,6 +668,213 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
     );
   }
 
+  Widget _buildTopPerformers() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance.collection('orders').snapshots(),
+      builder: (context, ordersSnapshot) {
+        if (!ordersSnapshot.hasData) return const SizedBox.shrink();
+
+        return StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance.collection('shops').snapshots(),
+          builder: (context, shopsSnapshot) {
+            if (!shopsSnapshot.hasData) return const Center(child: CircularProgressIndicator());
+
+            final orders = ordersSnapshot.data!.docs.where((order) {
+              final data = order.data() as Map<String, dynamic>;
+              final createdAt = (data['createdAt'] as Timestamp?)?.toDate();
+              return _isOrderInPeriod(createdAt);
+            }).toList();
+            final shops = shopsSnapshot.data!.docs;
+            
+            final shopRevenue = <String, double>{};
+            final shopOrders = <String, int>{};
+            
+            for (var order in orders) {
+              final data = order.data() as Map;
+              final shopId = data['shopId'];
+              final total = (data['totalAmount'] as num?)?.toDouble() ?? 0;
+              final paymentStatus = data['paymentStatus'] ?? 'pending';
+              
+              if (shopId != null && paymentStatus == 'paid') {
+                shopRevenue[shopId] = (shopRevenue[shopId] ?? 0) + total;
+                shopOrders[shopId] = (shopOrders[shopId] ?? 0) + 1;
+              }
+            }
+
+            final topShops = shopRevenue.entries.toList()
+              ..sort((a, b) => b.value.compareTo(a.value));
+            final top5Shops = topShops.take(5).toList();
+
+            if (top5Shops.isEmpty) {
+              return Card(
+                elevation: 3,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                child: Padding(
+                  padding: const EdgeInsets.all(32),
+                  child: Center(
+                    child: Column(
+                      children: [
+                        Icon(Icons.store, size: 48, color: Colors.grey.shade300),
+                        const SizedBox(height: 16),
+                        Text('No shop data available for this period', style: TextStyle(color: Colors.grey.shade500, fontSize: 14)),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }
+                
+            return Card(
+              elevation: 3,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              child: ListView.separated(
+                padding: EdgeInsets.zero,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: top5Shops.length,
+                separatorBuilder: (_, __) => Divider(height: 1, color: Colors.grey.shade100),
+                itemBuilder: (context, index) {
+                  final shopEntry = top5Shops[index];
+                  QueryDocumentSnapshot? shop;
+                  try {
+                    shop = shops.firstWhere((s) => s.id == shopEntry.key);
+                  } catch (_) {}
+                  
+                  if (shop == null) return const SizedBox.shrink();
+                  
+                  final shopData = shop.data() as Map;
+                  final shopName = shopData['name'] ?? 'Unknown';
+                  final revenue = shopEntry.value;
+                  final orderCount = shopOrders[shopEntry.key] ?? 0;
+                  final isFirst = index == 0;
+
+                  return ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    leading: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: isFirst ? Colors.amber.shade50 : Colors.indigo.shade50,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Center(
+                        child: Text(
+                          '${index + 1}',
+                          style: TextStyle(
+                            color: isFirst ? Colors.amber.shade700 : Colors.indigo.shade800,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                    title: Text(shopName, style: TextStyle(fontWeight: isFirst ? FontWeight.bold : FontWeight.w600, fontSize: 15)),
+                    subtitle: Text('Sold: $orderCount orders', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                    trailing: Text(
+                      '₹${revenue.toStringAsFixed(0)}',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.green,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildSystemHealth() {
+    return StreamBuilder<List<QuerySnapshot>>(
+      stream: _combineStreams([
+        FirebaseFirestore.instance.collection('users').snapshots(),
+        FirebaseFirestore.instance.collection('shops').snapshots(),
+        FirebaseFirestore.instance.collection('products').snapshots(),
+        FirebaseFirestore.instance.collection('orders').snapshots(),
+      ]),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) return const SizedBox.shrink();
+
+        final users = snapshot.data![0].docs;
+        final shops = snapshot.data![1].docs;
+        final products = snapshot.data![2].docs;
+        final orders = snapshot.data![3].docs;
+
+        final activeUsers = users.where((u) => (u.data() as Map)['isActive'] ?? true).length;
+        final activeShops = shops.where((s) => (s.data() as Map)['isActive'] ?? true).length;
+        final activeProducts = products.where((p) => (p.data() as Map)['isActive'] ?? true).length;
+        final pendingOrders = orders.where((o) => (o.data() as Map)['status'] == 'pending').length;
+
+        return Card(
+          elevation: 3,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                _buildHealthItem(icon: Icons.groups_rounded, label: 'Active Staff', value: '$activeUsers/${users.length}', percentage: users.isNotEmpty ? activeUsers / users.length : 0),
+                const Divider(height: 24),
+                _buildHealthItem(icon: Icons.store_rounded, label: 'Active Shops', value: '$activeShops/${shops.length}', percentage: shops.isNotEmpty ? activeShops / shops.length : 0),
+                const Divider(height: 24),
+                _buildHealthItem(icon: Icons.inventory_2_rounded, label: 'Active Products', value: '$activeProducts/${products.length}', percentage: products.isNotEmpty ? activeProducts / products.length : 0),
+                const Divider(height: 24),
+                _buildHealthItem(icon: Icons.pending_actions_rounded, label: 'Pending Orders', value: '$pendingOrders/${orders.length}', percentage: orders.isNotEmpty ? pendingOrders / orders.length : 0, isWarning: true),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildHealthItem({
+    required IconData icon,
+    required String label,
+    required String value,
+    required double percentage,
+    bool isWarning = false,
+  }) {
+    final color = isWarning
+        ? (percentage > 0.3 ? Colors.red.shade500 : Colors.orange.shade500)
+        : (percentage > 0.7 ? Colors.green.shade500 : percentage > 0.4 ? Colors.orange.shade500 : Colors.red.shade500);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+              child: Icon(icon, size: 18, color: color),
+            ),
+            const SizedBox(width: 12),
+            Expanded(child: Text(label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14))),
+            Text(value, style: TextStyle(fontWeight: FontWeight.bold, color: color, fontSize: 14)),
+          ],
+        ),
+        const SizedBox(height: 12),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(6),
+          child: LinearProgressIndicator(
+            value: percentage,
+            backgroundColor: Colors.grey.shade100,
+            valueColor: AlwaysStoppedAnimation(color),
+            minHeight: 8,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Stream<List<QuerySnapshot>> _combineStreams(List<Stream<QuerySnapshot>> streams) {
+    return Stream.periodic(const Duration(milliseconds: 500))
+        .asyncMap((_) => Future.wait(streams.map((s) => s.first)));
+  }
+
   // Bills Tab - Orders with Status
   Widget _buildBillsTab() {
     return StreamBuilder<QuerySnapshot>(
@@ -733,43 +962,74 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
         }
         
         // Calculate summary stats
-        final totalAmount = orders.fold<double>(0, (sum, order) {
+        final totalAmount = orders.fold<double>(0, (total, order) {
           final data = order.data() as Map<String, dynamic>;
           final paymentStatus = data['paymentStatus'] as String? ?? 'pending';
           // Only count paid orders
           if (paymentStatus == 'paid') {
-            return sum + ((data['totalAmount'] as num?)?.toDouble() ?? 0.0);
+            return total + ((data['totalAmount'] as num?)?.toDouble() ?? 0.0);
           }
-          return sum;
+          return total;
         });
         
-        final completedOrders = orders.where((order) {
-          final data = order.data() as Map<String, dynamic>;
-          return data['status'] == 'delivered';
-        }).length;
+        final statusCount = <String, int>{};
+        for (var order in orders) {
+          final status = (order.data() as Map)['status'] ?? 'pending';
+          statusCount[status] = (statusCount[status] ?? 0) + 1;
+        }
 
         return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Summary Bar
             Container(
               padding: const EdgeInsets.all(16),
-              color: Colors.indigo.shade50,
-              child: Row(
+              color: Colors.white,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: _buildMiniStat('Total Orders', '${orders.length}', Icons.receipt),
+                   Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Orders Overview',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      Text(
+                        'Revenue: ₹${totalAmount.toStringAsFixed(0)}',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green.shade700,
+                        ),
+                      ),
+                    ],
                   ),
-                  Container(width: 1, height: 40, color: Colors.indigo.shade200),
-                  Expanded(
-                    child: _buildMiniStat('Completed', '$completedOrders', Icons.check_circle),
-                  ),
-                  Container(width: 1, height: 40, color: Colors.indigo.shade200),
-                  Expanded(
-                    child: _buildMiniStat('Revenue', '₹${totalAmount.toStringAsFixed(0)}', Icons.payments),
+                  const SizedBox(height: 16),
+                  GridView.count(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    crossAxisCount: 3,
+                    mainAxisSpacing: 12,
+                    crossAxisSpacing: 12,
+                    childAspectRatio: 1.1,
+                    children: [
+                      _buildGridBox(label: 'Total', value: '${orders.length}', icon: Icons.shopping_cart_rounded, color: Colors.blue.shade600),
+                      _buildGridBox(label: 'Pending', value: '${statusCount['pending'] ?? 0}', icon: Icons.hourglass_top_rounded, color: Colors.orange.shade600),
+                      _buildGridBox(label: 'Processing', value: '${statusCount['processing'] ?? 0}', icon: Icons.autorenew_rounded, color: Colors.amber.shade600),
+                      _buildGridBox(label: 'Ready', value: '${statusCount['ready'] ?? 0}', icon: Icons.inventory_2_rounded, color: Colors.teal.shade600),
+                      _buildGridBox(label: 'Delivering', value: '${statusCount['out_for_delivery'] ?? 0}', icon: Icons.local_shipping_rounded, color: Colors.indigo.shade600),
+                      _buildGridBox(label: 'Delivered', value: '${statusCount['delivered'] ?? 0}', icon: Icons.check_circle_rounded, color: Colors.green.shade600),
+                    ],
                   ),
                 ],
               ),
             ),
+            const Divider(height: 1),
             Expanded(
               child: ListView.builder(
                 padding: const EdgeInsets.all(16),
@@ -786,7 +1046,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
       },
     );
   }
-  
+
   Widget _buildMiniStat(String label, String value, IconData icon) {
     return Column(
       children: [
@@ -808,6 +1068,26 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildGridBox({required String label, required String value, required IconData icon, required Color color}) {
+    return Container(
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withValues(alpha: 0.15)),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, color: color, size: 24),
+          const SizedBox(height: 8),
+          Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: color)),
+          const SizedBox(height: 2),
+          Text(label, style: TextStyle(fontSize: 11, color: Colors.grey.shade700, fontWeight: FontWeight.w500)),
+        ],
+      ),
     );
   }
 
@@ -834,7 +1114,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
               Row(
                 children: [
                   CircleAvatar(
-                    backgroundColor: _getStatusColor(status).withOpacity(0.2),
+                    backgroundColor: _getStatusColor(status).withValues(alpha: 0.2),
                     child: Icon(
                       Icons.receipt_long,
                       color: _getStatusColor(status),
@@ -902,7 +1182,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
                     ),
                   Row(
                     children: [
-                      _buildStatusChip('$status'),
+                      _buildStatusChip(status),
                       const SizedBox(width: 8),
                       _buildStatusChip('₹ $paymentStatus'),
                     ],
@@ -1625,7 +1905,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
           gradient: LinearGradient(
-            colors: [color, color.withOpacity(0.7)],
+            colors: [color, color.withValues(alpha: 0.7)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -1641,7 +1921,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
+                      color: Colors.white.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
@@ -1691,7 +1971,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
-          color: color.withOpacity(0.1),
+          color: color.withValues(alpha: 0.1),
         ),
         child: Column(
           children: [
@@ -1735,7 +2015,6 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
             }
 
             final allOrders = snapshot.data!.docs;
-            final products = productsSnapshot.data!.docs;
             
             // Filter orders based on selected period
             final orders = allOrders.where((order) {
@@ -1744,11 +2023,6 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
               return _isOrderInPeriod(createdAt);
             }).toList();
             
-            // Create a map of product buying prices
-            final productBuyingPrices = {
-              for (var doc in products)
-                doc.id: ((doc.data() as Map<String, dynamic>)['buyingPrice'] as num?)?.toDouble() ?? 0.0
-            };
 
             final totalOrders = orders.length;
             final pendingOrders = orders.where((doc) {
@@ -1775,38 +2049,6 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
               return data['userId'] as String? ?? '';
             }).where((id) => id.isNotEmpty).toSet().length;
             
-            double totalProfit = 0;
-            for (final order in orders) {
-              final data = order.data() as Map<String, dynamic>;
-              final items = data['items'] as List<dynamic>? ?? [];
-              
-              for (var item in items) {
-                final quantity = (item['quantity'] as num?)?.toDouble() ?? 1;
-                final profit = (item['profit'] as num?)?.toDouble();
-                
-                if (profit != null) {
-                  totalProfit += profit * quantity;
-                } else {
-                  final price = (item['price'] as num?)?.toDouble() ?? 0;
-                  var buyingPrice = (item['buyingPrice'] as num?)?.toDouble() ?? 0.0;
-                  
-                  if (buyingPrice == 0) {
-                    final productId = item['productId'] as String?;
-                    if (productId != null) {
-                      buyingPrice = productBuyingPrices[productId] ?? 0.0;
-                    }
-                  }
-                  
-                  if (buyingPrice == 0 && price > 0) {
-                    buyingPrice = price / 1.1;
-                  }
-
-                  if (price > 0) {
-                    totalProfit += (price - buyingPrice) * quantity;
-                  }
-                }
-              }
-            }
 
             return GridView.count(
               shrinkWrap: true,
@@ -1838,7 +2080,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
-          color: color.withOpacity(0.1),
+          color: color.withValues(alpha: 0.1),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -1880,9 +2122,9 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
       margin: const EdgeInsets.all(4),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Column(
         children: [
@@ -1924,9 +2166,9 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Text(
         status,
@@ -2150,9 +2392,9 @@ class OrderDetailsSheet extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Text(
         status,

@@ -60,14 +60,14 @@ class _ProcessedOrdersScreenState extends ConsumerState<ProcessedOrdersScreen> {
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
+                          color: Colors.black.withValues(alpha: 0.1),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
                       ],
                     ),
                     child: DropdownButtonFormField<String>(
-                      value: selectedLocationId,
+                      initialValue: selectedLocationId,
                       decoration: InputDecoration(
                         labelText: 'Select Location',
                         prefixIcon: Icon(Icons.location_on, color: Colors.green.shade700),
@@ -238,7 +238,7 @@ class _ProcessedOrdersScreenState extends ConsumerState<ProcessedOrdersScreen> {
                                         borderRadius: BorderRadius.circular(20),
                                         boxShadow: [
                                           BoxShadow(
-                                            color: Colors.green.withOpacity(0.3),
+                                            color: Colors.green.withValues(alpha: 0.3),
                                             blurRadius: 4,
                                             offset: const Offset(0, 2),
                                           ),
@@ -436,7 +436,7 @@ class _ProcessedOrdersScreenState extends ConsumerState<ProcessedOrdersScreen> {
                         margin: const EdgeInsets.only(bottom: 8),
                         child: ListTile(
                           title: Text(item['productName'] ?? 'Unknown'),
-                          subtitle: Text('${quantity.toStringAsFixed(0)} × ₹${price.toStringAsFixed(2)}'),
+                          subtitle: Text('${quantity.toStringAsFixed(0)} Ã— ₹${price.toStringAsFixed(2)}'),
                           trailing: Text(
                             '₹${subtotal.toStringAsFixed(2)}',
                             style: const TextStyle(
